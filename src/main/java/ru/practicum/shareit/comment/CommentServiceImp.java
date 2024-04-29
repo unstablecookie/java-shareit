@@ -21,7 +21,7 @@ public class CommentServiceImp implements CommentService {
     @Override
     public Comment addComment(Long userId, Long bookingId, Comment comment) {
         Booking booking = bookingRepository.getBooking(bookingId);
-        if ((booking == null) || (booking.getBooker().getId() != userId)) {
+        if ((booking == null) || (!booking.getBooker().getId().equals(userId))) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "wrong booking id or user");
         }
         if ((booking.getStatus() == Status.APPROVED) && ((booking.getEnd().isBefore(LocalDate.now())) || (booking.getEnd().equals(LocalDate.now())))) {

@@ -36,7 +36,7 @@ public class BookingRepositoryInMemory implements BookingRepository {
     @Override
     public Set<Booking> getItemBookings(Long itemId) {
         return storage.values().stream()
-                .filter(x -> x.getItem().equals(itemId))
+                .filter(x -> x.getItem().getId().equals(itemId))
                 .collect(Collectors.toSet());
     }
 
