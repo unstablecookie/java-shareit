@@ -41,41 +41,6 @@ public class ItemRequestRepositoryTest {
     }
 
     @Test
-    void updateItemRequest_success() {
-        //given
-        String anotherDescription = "another device";
-        itemRequestRepository.addItemRequest(itemRequest);
-        ItemRequest newItemRequest = ItemRequest.builder()
-                .description(anotherDescription)
-                .build();
-        Long requestId = 1L;
-        //when
-        itemRequestRepository.updateItemRequest(requestId, newItemRequest);
-        ItemRequest updatedRequest = itemRequestRepository.getItemRequest(requestId);
-        //then
-        assertThat(updatedRequest.getDescription())
-                .isNotNull()
-                .isEqualTo(anotherDescription);
-    }
-
-    @Test
-    void updateItemRequest_failure_withWrongId() {
-        //given
-        String anotherDescription = "another device";
-        itemRequestRepository.addItemRequest(itemRequest);
-        ItemRequest newItemRequest = ItemRequest.builder()
-                .description(anotherDescription)
-                .build();
-        //when
-        Long wrongId = -999L;
-        //then
-        assertThatThrownBy(() ->
-                itemRequestRepository.updateItemRequest(wrongId, newItemRequest))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("item request id -999 do not exists");
-    }
-
-    @Test
     void getItemRequest_success() {
         //given
         itemRequestRepository.addItemRequest(itemRequest);

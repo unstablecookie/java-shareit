@@ -1,6 +1,6 @@
 package ru.practicum.shareit.user;
 
-import ru.practicum.shareit.user.error.EntityAlreadyExistException;
+import ru.practicum.shareit.error.EntityAlreadyExistException;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.util.List;

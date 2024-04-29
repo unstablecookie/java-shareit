@@ -5,7 +5,7 @@ import ru.practicum.shareit.request.model.ItemRequest;
 public interface ItemRequestRepository {
     ItemRequest addItemRequest(ItemRequest itemRequest);
 
-    ItemRequest updateItemRequest(Long itemRequestId, ItemRequest itemRequest);
+    void updateItemRequest(ItemRequest updatedItemRequest);
 
     ItemRequest getItemRequest(Long itemRequestId);
 

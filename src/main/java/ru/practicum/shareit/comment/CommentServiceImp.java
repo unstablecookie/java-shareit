@@ -8,7 +8,7 @@ import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.Status;
 import ru.practicum.shareit.comment.model.Comment;
-import ru.practicum.shareit.user.error.TimeOverlapException;
+import ru.practicum.shareit.error.TimeOverlapException;
 
 import java.time.LocalDate;
 

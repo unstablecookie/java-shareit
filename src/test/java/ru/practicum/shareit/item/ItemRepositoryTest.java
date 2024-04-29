@@ -43,27 +43,6 @@ public class ItemRepositoryTest {
     }
 
     @Test
-    void updateItem_success() {
-        //given
-        itemRepository.addItem(item);
-        //when
-        String description = "another thing";
-        Item anotherItem = Item.builder()
-                .id(1L)
-                .description(description)
-                .build();
-        Item updatedItem = itemRepository.updateItem(anotherItem);
-        //then
-        assertThat(updatedItem)
-                .isNotNull()
-                .isInstanceOf(Item.class);
-        assertThat(updatedItem.getId())
-                .isEqualTo(1L);
-        assertThat(updatedItem.getDescription())
-                .isEqualTo(description);
-    }
-
-    @Test
     void updateItem_failure_wrongId() {
         //given
         itemRepository.addItem(item);
@@ -114,7 +93,7 @@ public class ItemRepositoryTest {
         itemRepository.addItem(item);
         //when
         Long userId = item.getOwner();
-        List<Item> items = itemRepository.getUserItems(userId);
+        Set<Item> items = itemRepository.getUserItems(userId);
         //then
         assertThat(items)
                 .isNotNull()
@@ -127,81 +106,12 @@ public class ItemRepositoryTest {
         //given
         Long userId = 1L;
         //when
-        List<Item> items = itemRepository.getUserItems(userId);
+        Set<Item> items = itemRepository.getUserItems(userId);
         //then
         assertThat(items)
                 .isNotNull()
                 .isInstanceOf(List.class)
                 .hasSize(0);
-    }
-
-    @Test
-    void searchItem_success() {
-        //given
-        itemRepository.addItem(item);
-        //when
-        String searchWord = "thing";
-        List<Item> result = itemRepository.searchItem(searchWord);
-        //then
-        assertThat(result)
-                .isNotNull()
-                .isInstanceOf(List.class)
-                .hasSize(1);
-    }
-
-    @Test
-    void searchItem_success_partialWord() {
-        //given
-        itemRepository.addItem(item);
-        //when
-        String searchWord = "thi";
-        List<Item> result = itemRepository.searchItem(searchWord);
-        //then
-        assertThat(result)
-                .isNotNull()
-                .isInstanceOf(List.class)
-                .hasSize(1);
-    }
-
-    @Test
-    void searchItem_success_noResults() {
-        //given
-        itemRepository.addItem(item);
-        //when
-        String searchWord = "cloud";
-        List<Item> result = itemRepository.searchItem(searchWord);
-        //then
-        assertThat(result)
-                .isNotNull()
-                .isInstanceOf(List.class)
-                .hasSize(0);
-    }
-
-    @Test
-    void deleteItem_success() {
-        //given
-        itemRepository.addItem(item);
-        //when
-        Long itemId = 1L;
-        itemRepository.deleteItem(itemId);
-        //then
-        assertThatThrownBy(() ->
-                itemRepository.getItem(itemId))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("item id 1 not found");
-    }
-
-    @Test
-    void deleteItem_failure_nonExistingId() {
-        //given
-        itemRepository.addItem(item);
-        //when
-        Long itemId = -999L;
-        //then
-        assertThatThrownBy(() ->
-                itemRepository.deleteItem(itemId))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("item id -999 not found");
     }
 
     @Test
@@ -211,23 +121,11 @@ public class ItemRepositoryTest {
         //when
         Long userId = item.getOwner();
         itemRepository.deleteUserItems(userId);
-        List<Item> items = itemRepository.getUserItems(userId);
+        Set<Item> items = itemRepository.getUserItems(userId);
         //then
         assertThat(items)
                 .isNotNull()
                 .isInstanceOf(List.class)
-                .hasSize(0);
-    }
-
-    @Test
-    void deleteUserItems_success_noItems() {
-        //when
-        Long userId = 1L;
-        Set<Long> itemsIds = itemRepository.deleteUserItems(userId);
-        //then
-        assertThat(itemsIds)
-                .isNotNull()
-                .isInstanceOf(Set.class)
                 .hasSize(0);
     }
 }

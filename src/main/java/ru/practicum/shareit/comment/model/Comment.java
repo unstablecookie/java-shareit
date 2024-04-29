@@ -8,8 +8,8 @@ import javax.validation.constraints.NotNull;
 @Data
 @Builder
 public class Comment {
-    Long id;
-    Long itemId;
+    private Long id;
+    private Long itemId;
     @NotNull
-    String text;
+    private String text;
 }

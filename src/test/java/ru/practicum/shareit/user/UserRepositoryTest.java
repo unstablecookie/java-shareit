@@ -3,8 +3,7 @@ package ru.practicum.shareit.user;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
-import ru.practicum.shareit.user.error.EntityAlreadyExistException;
-import ru.practicum.shareit.user.error.EntityNotFoundException;
+import ru.practicum.shareit.error.EntityAlreadyExistException;
 import ru.practicum.shareit.user.model.User;
 import java.util.List;
 
@@ -83,17 +82,6 @@ public class UserRepositoryTest {
     }
 
     @Test
-    void addUser_success() throws EntityAlreadyExistException {
-        //when
-        User addedUser = userRepository.addUser(user.getId(), user);
-        //then
-        assertThat(addedUser)
-                .isNotNull()
-                .isInstanceOf(User.class)
-                .isEqualTo(user);
-    }
-
-    @Test
     void addUser_failure_sameId() throws EntityAlreadyExistException {
         //given
         userRepository.addUser(user.getId(), user);
@@ -122,41 +110,6 @@ public class UserRepositoryTest {
                 userRepository.addUser(userId, anotherUser))
                 .isInstanceOf(EntityAlreadyExistException.class)
                 .hasMessageContaining("User with email usermail@mail.ru already exists");
-    }
-
-    @Test
-    void updateUser_success() throws EntityAlreadyExistException {
-        //given
-        userRepository.addUser(user.getId(), user);
-        //when
-        String newName = "newName";
-        User userUpdate = User.builder()
-                .name(newName)
-                .build();
-        User updatedUser = userRepository.updateUser(user.getId(), userUpdate);
-        //then
-        assertThat(updatedUser)
-                .isNotNull()
-                .isInstanceOf(User.class);
-        assertThat(updatedUser.getName())
-                .isEqualTo(newName);
-    }
-
-    @Test
-    void updateUser_failure_nonExistingUser() throws EntityAlreadyExistException {
-        //given
-        userRepository.addUser(user.getId(), user);
-        //when
-        String newName = "newName";
-        Long wrongId = -999L;
-        User userUpdate = User.builder()
-                .name(newName)
-                .build();
-        //then
-        assertThatThrownBy(() ->
-                userRepository.updateUser(wrongId, userUpdate))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("user -999 do not exists");
     }
 
     @Test

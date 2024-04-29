@@ -1,4 +1,4 @@
-package ru.practicum.shareit.user.error;
+package ru.practicum.shareit.error;
 
 public class EntityNotFoundException extends RuntimeException {
     public EntityNotFoundException(String message) {

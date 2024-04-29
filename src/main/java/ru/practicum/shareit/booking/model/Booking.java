@@ -11,15 +11,15 @@ import java.time.LocalDate;
 @Data
 @Builder
 public class Booking {
-    Long id;
+    private Long id;
     @NotNull
-    LocalDate start;
+    private LocalDate start;
     @NotNull
-    LocalDate end;
+    private LocalDate end;
     @NotNull
-    Item item;
+    private Item item;
     @NotNull
-    User booker;
+    private User booker;
     @NotNull
-    Status status;
+    private Status status;
 }

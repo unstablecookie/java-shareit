@@ -10,14 +10,14 @@ import javax.validation.constraints.NotNull;
 @Data
 @Builder
 public class Item {
-    Long id;
+    private Long id;
     @NotNull
     @NotBlank
-    String name;
+    private String name;
     @NotNull
-    String description;
+    private String description;
     @NotNull
-    Boolean available;
-    Long owner;
-    ItemRequest request;
+    private Boolean available;
+    private Long owner;
+    private ItemRequest request;
 }

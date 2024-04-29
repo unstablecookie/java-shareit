@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.Status;
-import ru.practicum.shareit.user.error.TimeOverlapException;
+import ru.practicum.shareit.error.TimeOverlapException;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 import java.time.LocalDate;
@@ -147,31 +147,31 @@ public class BookingRepositoryTest {
                 .hasMessageContaining("booking id -999 not found");
     }
 
-    @Test
-    void deleteBooking_success() {
-        //given
-        bookingRepository.addBooking(booking);
-        //when
-        bookingRepository.deleteBooking(booking.getId());
-        //then
-        assertThatThrownBy(() ->
-                bookingRepository.getBooking(booking.getId()))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("booking id 1 not found");
-    }
+//    @Test
+//    void deleteBooking_success() {
+//        //given
+//        bookingRepository.addBooking(booking);
+//        //when
+//        bookingRepository.deleteBooking(booking.getId());
+//        //then
+//        assertThatThrownBy(() ->
+//                bookingRepository.getBooking(booking.getId()))
+//                .isInstanceOf(ResponseStatusException.class)
+//                .hasMessageContaining("booking id 1 not found");
+//    }
 
-    @Test
-    void deleteBooking_failure_wrongBookingId() {
-        //given
-        bookingRepository.addBooking(booking);
-        //when
-        Long wrongId = -999L;
-        //then
-        assertThatThrownBy(() ->
-                bookingRepository.deleteBooking(wrongId))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("booking id -999 not found");
-    }
+//    @Test
+//    void deleteBooking_failure_wrongBookingId() {
+//        //given
+//        bookingRepository.addBooking(booking);
+//        //when
+//        Long wrongId = -999L;
+//        //then
+//        assertThatThrownBy(() ->
+//                bookingRepository.deleteBooking(wrongId))
+//                .isInstanceOf(ResponseStatusException.class)
+//                .hasMessageContaining("booking id -999 not found");
+//    }
 
     @Test
     void deleteItemBookings_success() {

@@ -1,6 +1,6 @@
-package ru.practicum.shareit.user.error;
+package ru.practicum.shareit.error;
 
-public class EntityAlreadyExistException extends Exception {
+public class EntityAlreadyExistException extends RuntimeException {
     public EntityAlreadyExistException() {
         super();
     }

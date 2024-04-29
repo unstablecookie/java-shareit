@@ -2,7 +2,7 @@ package ru.practicum.shareit.item.dto;
 
 import ru.practicum.shareit.item.model.Item;
 
-import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ItemMapper {
@@ -39,7 +39,7 @@ public class ItemMapper {
         return updatedItem;
     }
 
-    public static List<ItemDto> allItemsToItemsDto(List<Item> items) {
-        return items.stream().map(x -> toItemDto(x)).collect(Collectors.toList());
+    public static Set<ItemDto> allItemsToItemsDto(Set<Item> items) {
+        return items.stream().map(x -> toItemDto(x)).collect(Collectors.toSet());
     }
 }

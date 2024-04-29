@@ -1,17 +1,18 @@
 package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.error.EntityNotFoundException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
+import ru.practicum.shareit.user.model.User;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,65 +22,97 @@ public class ItemServiceImp implements ItemService {
     private final BookingRepository bookingRepository;
 
     @Override
-    public ItemDto addItem(Long userId, ItemDto itemDto) {
-        userRepository.getUser(userId);;
+    public Optional<ItemDto> addItem(Long userId, ItemDto itemDto) {
+        User user = userRepository.getUser(userId);;
+        if (user == null) {
+            return Optional.empty();
+        }
         Item item = ItemMapper.toItem(userId, itemDto);
         ItemDto newItemDto = ItemMapper.toItemDto(itemRepository.addItem(item));
-        return newItemDto;
+        return Optional.of(newItemDto);
     }
 
     @Override
-    public ItemDto updateItem(Long userId, ItemDto itemDto, Long itemId) {
-        userRepository.getUser(userId);
+    public Optional<ItemDto> updateItem(Long userId, ItemDto itemDto, Long itemId) {
+        User user = userRepository.getUser(userId);;
+        if (user == null) {
+            throw new EntityNotFoundException(String.format("user %d do not exists", userId));
+        }
+        Item oldItem = itemRepository.getItem(itemId);
+        if (oldItem == null) {
+            throw new EntityNotFoundException(String.format("item id %d not found", itemId));
+        }
         Item item = ItemMapper.toItem(userId, itemDto);
         item.setId(itemId);
-        validateOwner(userId, item);
-        ItemDto newItemDto = ItemMapper.toItemDto(itemRepository.updateItem(item));
-        return newItemDto;
+        if (validateOwner(userId, item)) {
+            return Optional.empty();
+        }
+        Item updatedItem = ItemMapper.updateItemWithItem(oldItem, item);
+        itemRepository.updateItem(updatedItem);
+        ItemDto newItemDto = ItemMapper.toItemDto(updatedItem);
+        return Optional.of(newItemDto);
     }
 
     @Override
     public ItemDto getItem(Long userId, Long itemId) {
         Item item = itemRepository.getItem(itemId);
-        item.setOwner(userId);
+        if (item == null) {
+            throw new EntityNotFoundException(String.format("item id %d not found", itemId));
+        }
         return ItemMapper.toItemDto(item);
     }
 
     @Override
-    public List<ItemDto> getUserItems(Long userId) {
+    public Set<ItemDto> getUserItems(Long userId) {
         userRepository.getUser(userId);
-        List<Item> items = itemRepository.getUserItems(userId);
+        Set<Item> items = itemRepository.getUserItems(userId);
         return ItemMapper.allItemsToItemsDto(items);
     }
 
     @Override
-    public List<ItemDto> searchItem(String searchText) {
+    public Set<ItemDto> searchItem(String searchText) {
         if (searchText.length() < 1) {
-            return List.of();
+            return Set.of();
         }
-        List<Item> items = itemRepository.searchItem(searchText);
-        return ItemMapper.allItemsToItemsDto(items);
+        Set<Item> items = itemRepository.getItems();
+        return ItemMapper.allItemsToItemsDto(items.stream()
+                .filter(x -> x.getAvailable())
+                .filter(x -> matchCase(searchText, x.getDescription()))
+                .collect(Collectors.toSet()));
     }
 
     @Override
     public void deleteItem(Long itemId) {
         bookingRepository.deleteItemBookings(itemId);
-        itemRepository.deleteItem(itemId);
+        Item item = itemRepository.getItem(itemId);
+        itemRepository.deleteItem(item);
     }
 
     @Override
     public void deleteUserItems(Long userId) {
         userRepository.getUser(userId);
-        Set<Long> items = itemRepository.deleteUserItems(userId);
-        items.stream().forEach(x -> bookingRepository.deleteItemBookings(x));
+        itemRepository.deleteUserItems(userId);
     }
 
-    private void validateOwner(Long userId, Item item) {
+    private boolean validateOwner(Long userId, Item item) {
         Item oldItem = itemRepository.getItem(item.getId());
-        if (itemRepository.getItem(item.getId()).getOwner() != userId) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, String.format("wrong owner id: %d",userId)
-            );
+        return !itemRepository.getItem(item.getId()).getOwner().equals(userId);
+    }
+
+    private boolean matchCase(String searchWord, String pattern) {
+        String[] patterns = pattern.toLowerCase().split(" ");
+        for (String word : patterns) {
+            if (searchWord.toLowerCase().equals(word)) {
+                return true;
+            }
+            if (searchWord.length() < word.length()) {
+                for (int i = 0; i < word.length() - searchWord.length(); i++) {
+                    if (searchWord.toLowerCase().equals(word.substring(i, i + searchWord.length()))) {
+                        return true;
+                    }
+                }
+            }
         }
+        return false;
     }
 }
