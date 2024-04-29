@@ -59,11 +59,10 @@ public class ItemRequestRepositoryTest {
         itemRequestRepository.addItemRequest(itemRequest);
         //when
         Long wrongId = -999L;
+        ItemRequest wrongIdItemRequest = itemRequestRepository.getItemRequest(wrongId);
         //then
-        assertThatThrownBy(() ->
-                itemRequestRepository.getItemRequest(wrongId))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("item request id -999 not found");
+        assertThat(wrongIdItemRequest)
+                .isNull();
     }
 
     @Test
@@ -72,10 +71,9 @@ public class ItemRequestRepositoryTest {
         itemRequestRepository.addItemRequest(itemRequest);
         //when
         itemRequestRepository.deleteItemRequest(itemRequest.getId());
+        ItemRequest deletedItemRequest = itemRequestRepository.getItemRequest(itemRequest.getId());
         //then
-        assertThatThrownBy(() ->
-                itemRequestRepository.getItemRequest(itemRequest.getId()))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("item request id 1 not found");
+        assertThat(deletedItemRequest)
+                .isNull();
     }
 }

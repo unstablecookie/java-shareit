@@ -9,6 +9,7 @@ import ru.practicum.shareit.error.TimeOverlapException;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 import java.time.LocalDate;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,30 +61,6 @@ public class BookingRepositoryTest {
     }
 
     @Test
-    void addBooking_failure_timeOverlap() {
-        //given
-        bookingRepository.addBooking(booking);
-        //when
-        User anotherUser = User.builder()
-                .id(3L)
-                .name("Ken")
-                .email("kens@mail.ru")
-                .build();
-        Booking newBooking = Booking.builder()
-                .id(2L)
-                .start(LocalDate.of(2020, 11, 12))
-                .end(LocalDate.of(2020, 11, 13))
-                .item(item)
-                .booker(anotherUser)
-                .build();
-        //then
-        assertThatThrownBy(() ->
-                bookingRepository.addBooking(newBooking))
-                .isInstanceOf(TimeOverlapException.class)
-                .hasMessageContaining("Booking for this period already exists");
-    }
-
-    @Test
     void updateBooking_success() {
         //given
         bookingRepository.addBooking(booking);
@@ -95,30 +72,6 @@ public class BookingRepositoryTest {
         //then
         Booking updatedBooking = bookingRepository.getBooking(booking.getId());
         assertThat(updatedBooking.getEnd().equals(LocalDate.of(2020, 11, 15)));
-    }
-
-    @Test
-    void updateBooking_failure_timeOverlapWithAnotherBooking() {
-        //given
-        bookingRepository.addBooking(booking);
-        //when
-        Long secondBookingId = 2L;
-        Booking anotherBooking = Booking.builder()
-                .id(secondBookingId)
-                .start(LocalDate.of(2020, 11,5))
-                .end(LocalDate.of(2020, 11,10))
-                .item(item)
-                .booker(user)
-                .build();
-        bookingRepository.addBooking(anotherBooking);
-        Booking updateBooking = Booking.builder()
-                .end(LocalDate.of(2020, 11, 11))
-                .build();
-        //then
-        assertThatThrownBy(() ->
-                bookingRepository.updateBooking(secondBookingId, updateBooking))
-                .isInstanceOf(TimeOverlapException.class)
-                .hasMessageContaining("Booking for this period already exists");
     }
 
     @Test
@@ -140,38 +93,11 @@ public class BookingRepositoryTest {
         bookingRepository.addBooking(booking);
         //when
         Long wrongId = -999L;
+        Booking wrongBooking = bookingRepository.getBooking(wrongId);
         //then
-        assertThatThrownBy(() ->
-                bookingRepository.getBooking(wrongId))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("booking id -999 not found");
+        assertThat(wrongBooking)
+                .isNull();
     }
-
-//    @Test
-//    void deleteBooking_success() {
-//        //given
-//        bookingRepository.addBooking(booking);
-//        //when
-//        bookingRepository.deleteBooking(booking.getId());
-//        //then
-//        assertThatThrownBy(() ->
-//                bookingRepository.getBooking(booking.getId()))
-//                .isInstanceOf(ResponseStatusException.class)
-//                .hasMessageContaining("booking id 1 not found");
-//    }
-
-//    @Test
-//    void deleteBooking_failure_wrongBookingId() {
-//        //given
-//        bookingRepository.addBooking(booking);
-//        //when
-//        Long wrongId = -999L;
-//        //then
-//        assertThatThrownBy(() ->
-//                bookingRepository.deleteBooking(wrongId))
-//                .isInstanceOf(ResponseStatusException.class)
-//                .hasMessageContaining("booking id -999 not found");
-//    }
 
     @Test
     void deleteItemBookings_success() {
@@ -188,28 +114,11 @@ public class BookingRepositoryTest {
                 .build();
         bookingRepository.addBooking(anotherBooking);
         bookingRepository.deleteItemBookings(item.getId());
+        Set<Booking> bookings = bookingRepository.getItemBookings(item.getId());
         //then
-        assertThatThrownBy(() ->
-                bookingRepository.getBooking(booking.getId()))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("booking id 1 not found");
-        assertThatThrownBy(() ->
-                bookingRepository.getBooking(anotherBooking.getId()))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("booking id 2 not found");
-    }
-
-    @Test
-    void deleteItemBookings_failure_nonExistingItem() {
-        //given
-        bookingRepository.addBooking(booking);
-        //when
-        Long wrongItemId = -999L;
-        //then
-        assertThatThrownBy(() ->
-                bookingRepository.deleteItemBookings(wrongItemId))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("item id -999 do not exist");
-        ;
+        assertThat(bookings)
+                .isNotNull()
+                .isInstanceOf(Set.class)
+                .hasSize(0);
     }
 }

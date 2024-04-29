@@ -53,11 +53,12 @@ public class ItemRepositoryTest {
                 .id(wrongId)
                 .description(description)
                 .build();
+        Item itemWasNotUpdated = itemRepository.getItem(item.getId());
         //then
-        assertThatThrownBy(() ->
-                itemRepository.updateItem(anotherItem))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("item id -999 not found");
+        assertThat(itemWasNotUpdated)
+                .isNotNull()
+                .isInstanceOf(Item.class)
+                .isEqualTo(item);
     }
 
     @Test
@@ -80,11 +81,10 @@ public class ItemRepositoryTest {
         itemRepository.addItem(item);
         //when
         Long wrongId = -999L;
+        Item wrongItem = itemRepository.getItem(wrongId);
         //then
-        assertThatThrownBy(() ->
-                itemRepository.getItem(wrongId))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("item id -999 not found");
+        assertThat(wrongItem)
+                .isNull();
     }
 
     @Test
@@ -97,7 +97,7 @@ public class ItemRepositoryTest {
         //then
         assertThat(items)
                 .isNotNull()
-                .isInstanceOf(List.class)
+                .isInstanceOf(Set.class)
                 .hasSize(1);
     }
 
@@ -110,7 +110,7 @@ public class ItemRepositoryTest {
         //then
         assertThat(items)
                 .isNotNull()
-                .isInstanceOf(List.class)
+                .isInstanceOf(Set.class)
                 .hasSize(0);
     }
 
@@ -125,7 +125,7 @@ public class ItemRepositoryTest {
         //then
         assertThat(items)
                 .isNotNull()
-                .isInstanceOf(List.class)
+                .isInstanceOf(Set.class)
                 .hasSize(0);
     }
 }

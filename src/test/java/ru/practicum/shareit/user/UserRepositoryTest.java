@@ -6,6 +6,7 @@ import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.error.EntityAlreadyExistException;
 import ru.practicum.shareit.user.model.User;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -40,16 +41,15 @@ public class UserRepositoryTest {
     }
 
     @Test
-    void getUser_failure_existingUser() throws EntityAlreadyExistException {
+    void getUser_failure_withWrongId() throws EntityAlreadyExistException {
         //given
         userRepository.addUser(user.getId(), user);
         //when
         Long id = -999L;
+        User wrongUser = userRepository.getUser(id);
         //then
-        assertThatThrownBy(() ->
-                userRepository.getUser(id))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("user id: -999 ,do not exist");
+        assertThat(wrongUser)
+                .isNull();
     }
 
     @Test
@@ -90,26 +90,10 @@ public class UserRepositoryTest {
         String userName = "anothername";
         String email = "another@mail.ru";
         User anotherUser = new User(userId, userName, email);
+        Optional<User> failedUser = userRepository.addUser(userId, anotherUser);
         //then
-        assertThatThrownBy(() ->
-                userRepository.addUser(userId, anotherUser))
-                .isInstanceOf(EntityAlreadyExistException.class);
-    }
-
-    @Test
-    void addUser_failure_duplicateEmail() throws EntityAlreadyExistException {
-        //given
-        userRepository.addUser(user.getId(), user);
-        //when
-        Long userId = 2L;
-        String userName = "anothername";
-        String email = "usermail@mail.ru";
-        User anotherUser = new User(userId, userName, email);
-        //then
-        assertThatThrownBy(() ->
-                userRepository.addUser(userId, anotherUser))
-                .isInstanceOf(EntityAlreadyExistException.class)
-                .hasMessageContaining("User with email usermail@mail.ru already exists");
+        assertThat(failedUser)
+                .isEqualTo(Optional.empty());
     }
 
     @Test

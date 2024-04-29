@@ -47,8 +47,10 @@ public class BookingRepositoryInMemory implements BookingRepository {
 
     @Override
     public void deleteItemBookings(Long itemId) {
-        storage.values().stream()
+        List<Booking> bookings = List.copyOf(storage.values().stream()
                 .filter(x -> x.getItem().getId().equals(itemId))
+                        .collect(Collectors.toList()));
+        bookings.stream()
                 .forEach(x -> storage.remove(x.getId()));
     }
 }

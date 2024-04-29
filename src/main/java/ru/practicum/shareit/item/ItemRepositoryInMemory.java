@@ -52,8 +52,9 @@ public class ItemRepositoryInMemory implements ItemRepository {
 
     @Override
     public void deleteUserItems(Long userId) {
-        storage.values().stream()
+        List<Item> items = List.copyOf(storage.values().stream()
                 .filter(x -> x.getOwner().equals(userId))
-                .forEach(x -> storage.remove(x.getId()));
+                .collect(Collectors.toList()));
+        items.stream().forEach(x -> storage.remove(x.getId()));
     }
 }
