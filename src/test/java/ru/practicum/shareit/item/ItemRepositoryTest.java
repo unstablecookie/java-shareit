@@ -2,10 +2,8 @@ package ru.practicum.shareit.item;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.item.model.Item;
 
-import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;

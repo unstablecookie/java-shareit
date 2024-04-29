@@ -2,7 +2,6 @@ package ru.practicum.shareit.user;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.error.EntityAlreadyExistException;
 import ru.practicum.shareit.user.model.User;
 import java.util.List;
