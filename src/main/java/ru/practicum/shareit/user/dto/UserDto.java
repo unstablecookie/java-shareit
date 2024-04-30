@@ -9,8 +9,8 @@ import ru.practicum.shareit.util.CustomEmailValidator;
 @Builder
 @AllArgsConstructor
 public class UserDto {
-    Long id;
-    String name;
+    private Long id;
+    private String name;
     @CustomEmailValidator
-    String email;
+    private String email;
 }

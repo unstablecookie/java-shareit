@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Builder
 public class ItemRequestDto {
     @NotNull
-    String description;
+    private String description;
     @NotNull
-    LocalDateTime created;
+    private LocalDateTime created;
 }

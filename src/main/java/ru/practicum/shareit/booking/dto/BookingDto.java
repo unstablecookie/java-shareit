@@ -11,13 +11,13 @@ import java.time.LocalDate;
 @Builder
 public class BookingDto {
     @NotNull
-    LocalDate start;
+    private LocalDate start;
     @NotNull
-    LocalDate end;
+    private LocalDate end;
     @NotNull
-    Long item;
+    private Long item;
     @NotNull
-    Long booker;
+    private Long booker;
     @NotNull
-    Status status = Status.WAITING;
+    private Status status = Status.WAITING;
 }

@@ -2,7 +2,6 @@ package ru.practicum.shareit.booking;
 
 import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.booking.model.Status;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -18,7 +17,6 @@ public class BookingRepositoryInMemory implements BookingRepository {
             booking.setId(counter);
             counter++;
         }
-        booking.setStatus(Status.WAITING);
         storage.put(booking.getId(), booking);
         return booking;
     }

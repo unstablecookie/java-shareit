@@ -7,7 +7,7 @@ import java.util.*;
 
 @Repository
 public class CommentRepositoryInMemory implements CommentRepository {
-    private final Map<Long, Set<Comment>> storage = new HashMap<>();
+    private final Map<Long, HashSet<Comment>> storage = new HashMap<>();
     private Long counter = 1L;
 
     @Override
@@ -15,12 +15,9 @@ public class CommentRepositoryInMemory implements CommentRepository {
         comment.setId(counter);
         counter++;
         if (storage.get(comment.getItemId()) == null) {
-            Set<Comment> comments = new HashSet<>();
-            comments.add(comment);
-        } else {
-            Set<Comment> comments = storage.get(comment.getItemId());
-            comments.add(comment);
+            storage.put(comment.getItemId(), new HashSet<>());
         }
+        storage.get(comment.getItemId()).add(comment);
         return comment;
     }
 }

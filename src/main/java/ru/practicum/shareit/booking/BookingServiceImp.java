@@ -31,6 +31,7 @@ public class BookingServiceImp implements BookingService {
         User booker = userRepository.getUser(bookingDto.getBooker());
         Booking booking = BookingMapper.toBooking(bookingDto, item, booker);
         checkTimeOverlap(booking);
+        booking.setStatus(Status.WAITING);
         return BookingMapper.toBookingDto(bookingRepository.addBooking(booking));
     }
 
