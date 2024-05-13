@@ -24,9 +24,9 @@ public class Item {
     private Boolean available;
     @Column(name = "owner_id")
     private Long owner;
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "request_id")
-    private ItemRequest request;
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "request_id")
+//    private ItemRequest request;
 
     public Item() {
     }

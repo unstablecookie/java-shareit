@@ -10,8 +10,7 @@ public class ItemMapper {
                 item.getId(),
                 item.getName(),
                 item.getDescription(),
-                item.getAvailable(),
-                item.getRequest() != null ? item.getRequest().getId() : null
+                item.getAvailable()
         );
     }
 
@@ -43,7 +42,6 @@ public class ItemMapper {
                 .description((newItem.getDescription() != null) ? newItem.getDescription() : oldItem.getDescription())
                 .available((newItem.getAvailable() != null) ? newItem.getAvailable() : oldItem.getAvailable())
                 .owner((newItem.getOwner() != null) ? newItem.getOwner() : oldItem.getOwner())
-                .request((newItem.getRequest() != null) ? newItem.getRequest() : oldItem.getRequest())
                 .build();
         return updatedItem;
     }
