@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Table(name = "bookings")
 public class Booking {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "bookings_id_seq")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(name = "start_date", nullable = false)
     private LocalDateTime start;
