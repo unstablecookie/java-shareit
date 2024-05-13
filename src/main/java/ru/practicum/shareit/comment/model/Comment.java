@@ -1,15 +1,34 @@
 package ru.practicum.shareit.comment.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.model.User;
 
-import javax.validation.constraints.NotNull;
+import javax.persistence.*;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
+@Entity
+@AllArgsConstructor
+@Table(name = "comments")
 public class Comment {
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "comments_id_seq")
     private Long id;
-    private Long itemId;
-    @NotNull
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "item_id")
+    private Item item;
+    @Column(name = "text")
     private String text;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "author_id")
+    private User author;
+    @Column(name = "created", nullable = false)
+    private LocalDateTime created;
+
+    public Comment() {
+    }
 }

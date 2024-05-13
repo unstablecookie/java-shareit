@@ -1,7 +1,9 @@
 package ru.practicum.shareit.booking.dto;
 
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.item.dto.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.dto.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
 public class BookingMapper {
@@ -10,7 +12,7 @@ public class BookingMapper {
                 .start((bookingDto.getStart() != null) ? bookingDto.getStart() : null)
                 .end((bookingDto.getEnd() != null) ? bookingDto.getEnd() : null)
                 .item((item != null) ? item : null)
-                .booker((booker != null) ? booker : null)
+                .user((booker != null) ? booker : null)
                 .status((bookingDto.getStatus() != null) ? bookingDto.getStatus() : null)
                 .build();
     }
@@ -19,11 +21,38 @@ public class BookingMapper {
         return BookingDto.builder()
                 .start(booking.getStart())
                 .end(booking.getEnd())
-                .item(booking.getItem().getId())
-                .booker(booking.getBooker().getId())
+                .itemId(booking.getItem().getId())
+                .bookerId(booking.getUser().getId())
                 .status(booking.getStatus())
                 .status(booking.getStatus())
                 .build();
+    }
+
+    public static BookingDtoFull toBookingDtoFull(Booking booking) {
+        return BookingDtoFull.builder()
+                .id(booking.getId())
+                .start(booking.getStart())
+                .end(booking.getEnd())
+                .item(ItemMapper.toItemDto(booking.getItem()))
+                .booker(UserMapper.toUserDto(booking.getUser()))
+                .status(booking.getStatus())
+                .build();
+    }
+
+    public static LastBookingDto toLastBookingDto(Booking booking) {
+        LastBookingDto lastBookingDto = LastBookingDto.builder()
+                .id(booking.getId())
+                .bookerId(booking.getUser().getId())
+                .build();
+        return lastBookingDto;
+    }
+
+    public static NextBookingDto toNextBookingDto(Booking booking) {
+        NextBookingDto nextBookingDto = NextBookingDto.builder()
+                .id(booking.getId())
+                .bookerId(booking.getUser().getId())
+                .build();
+        return nextBookingDto;
     }
 
     public static Booking updateBookingWithBooking(Booking oldBooking, Booking newBooking) {
@@ -32,7 +61,7 @@ public class BookingMapper {
                 .start((newBooking.getStart() != null) ? newBooking.getStart() : oldBooking.getStart())
                 .end((newBooking.getEnd() != null) ? newBooking.getEnd() : oldBooking.getEnd())
                 .item((newBooking.getItem() != null) ? newBooking.getItem() : oldBooking.getItem())
-                .booker((newBooking.getBooker() != null) ? newBooking.getBooker() : oldBooking.getBooker())
+                .user((newBooking.getUser() != null) ? newBooking.getUser() : oldBooking.getUser())
                 .build();
         return updatedBooking;
     }

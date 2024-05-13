@@ -3,14 +3,24 @@ package ru.practicum.shareit.user.model;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import ru.practicum.shareit.util.CustomEmailValidator;
+
+import javax.persistence.*;
 
 @Data
 @Builder
 @AllArgsConstructor
+@Entity
+@Table(name = "users")
 public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "users_id_seq")
+    @Column(name = "id")
     private Long id;
+    @Column(name = "name")
     private String name;
-    @CustomEmailValidator
+    @Column(name = "email", unique = true)
     private String email;
+
+    public User() {
+    }
 }
