@@ -1,20 +1,27 @@
 package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.dto.BookingDtoFull;
 import ru.practicum.shareit.booking.dto.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.State;
 import ru.practicum.shareit.booking.model.Status;
 import ru.practicum.shareit.error.EntityNotFoundException;
-import ru.practicum.shareit.error.TimeOverlapException;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,100 +31,231 @@ public class BookingServiceImp implements BookingService {
     private final BookingRepository bookingRepository;
 
     @Override
-    public BookingDto addBooking(BookingDto bookingDto) {
-        userRepository.getUser(bookingDto.getBooker());
-        itemRepository.getItem(bookingDto.getItem());
-        Item item = itemRepository.getItem(bookingDto.getItem());
-        User booker = userRepository.getUser(bookingDto.getBooker());
-        Booking booking = BookingMapper.toBooking(bookingDto, item, booker);
-        checkTimeOverlap(booking);
+    public Optional<BookingDtoFull> addBooking(BookingDto bookingDto, Long userId) {
+        bookingDto.setBookerId(userId);
+        Optional<User> booker = userRepository.findById(bookingDto.getBookerId());
+        if (bookingDto.getStart().isAfter(bookingDto.getEnd()) || bookingDto.getStart().isEqual(bookingDto.getEnd()) ||
+                bookingDto.getStart().isBefore(LocalDateTime.now(ZoneId.of("UTC")))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "wrong booking attributes");
+        }
+        if (booker.isEmpty()) {
+            throw new EntityNotFoundException(String.format("user id %d not found", bookingDto.getBookerId()));
+        }
+        Optional<Item> item = itemRepository.findById(bookingDto.getItemId());
+        if (item.isEmpty() || item.get().getOwner().equals(userId)) {
+            return Optional.empty();
+        }
+        if (!item.get().getAvailable().booleanValue()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "item is unavailable");
+        }
+        Booking booking = BookingMapper.toBooking(bookingDto, item.get(), booker.get());
+        if (checkTimeOverlap(booking)) {
+            return Optional.empty();
+        }
         booking.setStatus(Status.WAITING);
-        return BookingMapper.toBookingDto(bookingRepository.addBooking(booking));
+        return Optional.of(BookingMapper.toBookingDtoFull(bookingRepository.save(booking)));
     }
 
     @Override
-    public BookingDto updateBooking(Long bookingId, BookingDto bookingDto) {
-        Booking oldBooking = bookingRepository.getBooking(bookingId);
-        if (oldBooking == null) {
-            throw new EntityNotFoundException(String.format("booking id %d not found", bookingId)
-            );
+    public Optional<BookingDtoFull> getBooking(Long bookingId, Long userId) {
+        Optional<Booking> booking = bookingRepository.findById(bookingId);
+        if (booking.isEmpty()) {
+            return Optional.empty();
         }
-        Item item = itemRepository.getItem(bookingDto.getItem());
-        User booker = userRepository.getUser(bookingDto.getBooker());
-        Booking booking = BookingMapper.toBooking(bookingDto, item, booker);
-        Booking updatedBooking = BookingMapper.updateBookingWithBooking(oldBooking, booking);
-        checkTimeOverlap(updatedBooking);
-        bookingRepository.updateBooking(bookingId, booking);
-        return BookingMapper.toBookingDto(updatedBooking);
+        if (!booking.get().getUser().getId().equals(userId) && !booking.get().getItem().getOwner().equals(userId)) {
+            return Optional.empty();
+        }
+        return Optional.of(BookingMapper.toBookingDtoFull(booking.get()));
     }
 
     @Override
-    public BookingDto getBooking(Long bookingId) {
-        Booking booking = bookingRepository.getBooking(bookingId);
-        if (booking == null) {
-            throw new EntityNotFoundException(String.format("booking id %d not found", bookingId));
+    public Optional<List<BookingDtoFull>> getOwnerBookings(Long userId) {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isEmpty()) {
+            return Optional.empty();
         }
-        return BookingMapper.toBookingDto(booking);
+        List<Item> items = itemRepository.findByOwner(userId);
+        Set<Booking> bookings = items.stream()
+                .map(x -> bookingRepository.findByItemIdOrderByStartDesc(x.getId()))
+                .flatMap(x -> x.stream())
+                .collect(Collectors.toSet());
+        return Optional.of(bookings.stream()
+                .map(x -> BookingMapper.toBookingDtoFull(x))
+                .sorted((a, b) -> b.getStart().compareTo(a.getStart()))//TODO
+                .collect(Collectors.toList()));
+    }
+
+    @Override
+    public Optional<List<BookingDtoFull>> getOwnerBookingsWithState(Long userId, State queryStatus) {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isEmpty()) {
+            return Optional.empty();
+        }
+        List<Item> items = itemRepository.findByOwner(userId);
+        List<Booking> bookings;
+        if (queryStatus.equals(State.REJECTED) || queryStatus.equals(State.WAITING)) {
+            Status status = Status.valueOf(queryStatus.name());
+            bookings = items.stream()
+                    .map(x -> bookingRepository.findByItemIdOrderByStartDesc(x.getId()))
+                    .flatMap(x -> x.stream())
+                    .filter(x -> x.getStatus().equals(status))
+                    .collect(Collectors.toList());
+        } else {
+            switch (queryStatus) {
+                case ALL: bookings = items.stream()
+                        .map(x -> bookingRepository.findByItemIdOrderByStartDesc(x.getId()))
+                        .flatMap(x -> x.stream())
+                        .collect(Collectors.toList());
+                    break;
+                case PAST: bookings = items.stream()
+                        .map(x -> bookingRepository.findByItemIdOrderByStartDesc(x.getId()))
+                        .flatMap(x -> x.stream())
+                        .filter(x -> x.getEnd().isBefore(LocalDateTime.now()))
+                        .collect(Collectors.toList());
+                    break;
+                case FUTURE: bookings = items.stream()
+                        .map(x -> bookingRepository.findByItemIdOrderByStartDesc(x.getId()))
+                        .flatMap(x -> x.stream())
+                        .filter(x -> x.getStart().isAfter(LocalDateTime.now()))
+                        .collect(Collectors.toList());
+                    break;
+                case CURRENT: bookings = items.stream()
+                        .map(x -> bookingRepository.findByItemIdOrderByStartDesc(x.getId()))
+                        .flatMap(x -> x.stream())
+                        .filter(x -> x.getStart().isBefore(LocalDateTime.now()) &&
+                                x.getEnd().isAfter(LocalDateTime.now()))
+                        .collect(Collectors.toList());
+                    break;
+                default: return Optional.empty();
+            }
+        }
+        return Optional.of(bookings.stream()
+                .map(x -> BookingMapper.toBookingDtoFull(x))
+                .sorted((a, b) -> b.getStart().compareTo(a.getStart()))
+                .collect(Collectors.toList()));
+    }
+
+    @Override
+    public Optional<List<BookingDtoFull>> getUserBookingsWithState(Long userId, State queryStatus) {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isEmpty()) {
+            return Optional.empty();
+        }
+        List<Booking> bookings;
+        if (queryStatus.equals(State.REJECTED) || queryStatus.equals(State.WAITING)) {
+            Status status = Status.valueOf(queryStatus.name());
+            bookings = bookingRepository.findUsersBookings(userId).stream()
+                    .filter(x -> x.getStatus().equals(status))
+                    .sorted((a, b) -> b.getStart().compareTo(a.getStart()))
+                    .collect(Collectors.toList());
+        } else {
+            switch (queryStatus) {
+                case ALL: bookings = bookingRepository.findUsersBookings(userId).stream()
+                        .collect(Collectors.toList());
+                break;
+                case PAST: bookings = bookingRepository.findUsersBookings(userId).stream()
+                        .filter(x -> x.getEnd().isBefore(LocalDateTime.now()))
+                        .collect(Collectors.toList());
+                break;
+                case FUTURE: bookings = bookingRepository.findUsersBookings(userId).stream()
+                        .filter(x -> x.getStart().isAfter(LocalDateTime.now()))
+                        .collect(Collectors.toList());
+                break;
+                case CURRENT: bookings = bookingRepository.findUsersBookings(userId).stream()
+                        .filter(x -> x.getStart().isBefore(LocalDateTime.now()) &&
+                                x.getEnd().isAfter(LocalDateTime.now()))
+                        .collect(Collectors.toList());
+                break;
+                default: return Optional.empty();
+            }
+        }
+        return Optional.of(bookings.stream()
+                .map(x -> BookingMapper.toBookingDtoFull(x))
+                .sorted((a, b) -> b.getStart().compareTo(a.getStart()))
+                .collect(Collectors.toList()));
+    }
+
+    @Override
+    public Optional<List<BookingDtoFull>> getUserBookings(Long userId) {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isEmpty()) {
+            return Optional.empty();
+        }
+        List<Booking> bookings = bookingRepository.findUsersBookings(userId);
+        return Optional.of(bookings.stream()
+                .map(x -> BookingMapper.toBookingDtoFull(x))
+                .sorted((a, b) -> b.getStart().compareTo(a.getStart()))
+                .collect(Collectors.toList()));
     }
 
     @Override
     public void deleteBooking(Long bookingId) {
-        Booking booking = bookingRepository.getBooking(bookingId);
-        if (booking == null) {
+        Optional<Booking> booking = bookingRepository.findById(bookingId);
+        if (booking.isEmpty()) {
             throw new EntityNotFoundException(String.format("booking id %d not found", bookingId));
         }
-        bookingRepository.deleteBooking(booking);
+        bookingRepository.delete(booking.get());
     }
 
     @Override
-    public void approveBooking(Long userId, Long bookingId) {
-        Booking booking = bookingRepository.getBooking(bookingId);
-        if ((booking == null) || (!booking.getItem().getOwner().equals(userId))) {
-            throw new EntityNotFoundException(String.format("user id %d is not owner or booking does not exist",
-                    userId, bookingId));
+    public Optional<BookingDtoFull> updateBooking(Long userId, Long bookingId, Boolean approved) {
+        Optional<Booking> booking = bookingRepository.findById(bookingId);
+        if (!booking.get().getItem().getOwner().equals(userId)) {
+            throw new EntityNotFoundException("user is not an owner");
         }
-        booking.setStatus(Status.APPROVED);
-        bookingRepository.updateBooking(bookingId, booking);
-    }
-
-    @Override
-    public void rejectBooking(Long userId, Long bookingId) {
-        Booking booking = bookingRepository.getBooking(bookingId);
-        if ((booking == null) || (!booking.getItem().getOwner().equals(userId))) {
-            throw new EntityNotFoundException(String.format("user id %d is not owner or booking does not exist",
-                    userId, bookingId)
-            );
+        if (booking.isEmpty()) {
+            return Optional.empty();
         }
-        booking.setStatus(Status.REJECTED);
-        bookingRepository.updateBooking(bookingId, booking);
+        if (approved.booleanValue()) {
+            if (booking.get().getStatus().equals(Status.APPROVED)) {
+                return Optional.empty();
+            }
+            booking.get().setStatus(Status.APPROVED);
+        } else {
+            booking.get().setStatus(Status.REJECTED);
+        }
+        bookingRepository.save(booking.get());
+        return Optional.of(BookingMapper.toBookingDtoFull(booking.get()));
     }
 
     @Override
     public void cancelBooking(Long userId, Long bookingId) {
-        Booking booking = bookingRepository.getBooking(bookingId);
-        if ((booking == null) || (!booking.getBooker().getId().equals(userId))) {
+        Optional<Booking> booking = bookingRepository.findById(bookingId);
+        if (booking.isEmpty() || (!booking.get().getUser().getId().equals(userId))) {
             throw new EntityNotFoundException(String.format("user id %d is not owner or booking does not exist",
                     userId, bookingId)
             );
         }
-        booking.setStatus(Status.CANCELED);
-        bookingRepository.updateBooking(bookingId, booking);
+        booking.get().setStatus(Status.CANCELED);
+        bookingRepository.save(booking.get());
     }
 
-    private void checkTimeOverlap(Booking booking) {
-        Set<Booking> itemBookings = bookingRepository.getItemBookings(booking.getItem().getId());
-        itemBookings.stream()
-                .filter(x -> x.getItem().getId().equals(booking.getItem().getId()))
-                .forEach(x -> isItOverlapping(x.getStart(), x.getEnd(), booking.getStart(), booking.getEnd()));
+    private boolean checkTimeOverlap(Booking booking) {
+        Set<Booking> itemBookings = bookingRepository.findByItemIdOrderByStartDesc(booking.getItem().getId())
+                .stream().collect(Collectors.toSet());
+        Set<Booking> overlapedBookings = itemBookings.stream()
+                .filter(x -> isItOverlapping(x.getStart(), x.getEnd(), booking.getStart(), booking.getEnd()))
+                .limit(1)
+                .collect(Collectors.toSet());
+        return overlapedBookings.size() > 0;
     }
 
-    private void isItOverlapping(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2) {
-        long overlap1 = Math.min(end1.toEpochDay() - start1.toEpochDay(),
-                end1.toEpochDay() - start2.toEpochDay());
-        long overlap2 = Math.min(end2.toEpochDay() - start2.toEpochDay(),
-                end2.toEpochDay() - start1.toEpochDay());
-        if (Math.min(overlap1, overlap2) >= 0) {
-            throw new TimeOverlapException("Booking for this period already exists");
+    private boolean isItOverlapping(LocalDateTime start1, LocalDateTime end1, LocalDateTime start2, LocalDateTime end2) {
+        if (start1.isBefore(start2) && end1.isAfter(start2)) {
+            return true;
         }
+        if (start2.isBefore(start1) && end2.isAfter(start1)) {
+            return true;
+        }
+        if (start1.isBefore(start2) && end1.isAfter(end2)) {
+            return true;
+        }
+        if (start2.isBefore(start1) && end2.isAfter(end1)) {
+            return true;
+        }
+        if (start1.isEqual(start2) && end1.isEqual(end2)) {
+            return true;
+        }
+        return false;
     }
 }
