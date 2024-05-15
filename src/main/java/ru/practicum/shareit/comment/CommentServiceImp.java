@@ -10,6 +10,7 @@ import ru.practicum.shareit.comment.dto.CommentDtoFull;
 import ru.practicum.shareit.comment.dto.CommentMapper;
 import ru.practicum.shareit.comment.model.Comment;
 import ru.practicum.shareit.error.BookingNotFoundException;
+import ru.practicum.shareit.error.EntityNotFoundException;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
@@ -17,7 +18,6 @@ import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,7 +29,7 @@ public class CommentServiceImp implements CommentService {
     private final ItemRepository itemRepository;
 
     @Override
-    public Optional<CommentDtoFull> addItemComment(Long userId, CommentDto commentDto, Long itemId) {
+    public CommentDtoFull addItemComment(Long userId, CommentDto commentDto, Long itemId) {
         List<Booking> bookings = bookingRepository.findUsersBookingForAnItemOrderByStartDesc(userId, itemId).stream()
                 .filter(x -> !x.getStatus().equals(Status.REJECTED))
                 .filter(x -> x.getStart().isBefore(LocalDateTime.now()))
@@ -37,15 +37,11 @@ public class CommentServiceImp implements CommentService {
         if (bookings.size() < 1) {
             throw new BookingNotFoundException();
         }
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isEmpty()) {
-            return Optional.empty();
-        }
-        Optional<Item> item = itemRepository.findById(itemId);
-        if (item.isEmpty()) {
-            return Optional.empty();
-        }
-        Comment createdComment = commentRepository.save(CommentMapper.toComment(commentDto, item.get(), user.get()));
-        return Optional.of(CommentMapper.toCommentDtoFull(createdComment, user.get().getName()));
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
+        Item item = itemRepository.findById(itemId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("item id: %d was not found", itemId)));
+        Comment createdComment = commentRepository.save(CommentMapper.toComment(commentDto, item, user));
+        return CommentMapper.toCommentDtoFull(createdComment, user.getName());
     }
 }

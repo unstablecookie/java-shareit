@@ -3,8 +3,7 @@ package ru.practicum.shareit.item.dto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import ru.practicum.shareit.booking.dto.LastBookingDto;
-import ru.practicum.shareit.booking.dto.NextBookingDto;
+import ru.practicum.shareit.booking.dto.BookingMinDto;
 import ru.practicum.shareit.comment.dto.CommentDtoFull;
 
 import java.util.ArrayList;
@@ -19,7 +18,7 @@ public class ItemWithBookingsDto {
     private String description;
     private Boolean available;
     private Long requestId;
-    private LastBookingDto lastBooking;
-    private NextBookingDto nextBooking;
+    private BookingMinDto lastBooking;
+    private BookingMinDto nextBooking;
     private List<CommentDtoFull> comments = new ArrayList<>();
 }

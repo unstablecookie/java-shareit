@@ -30,49 +30,40 @@ public class ItemServiceImp implements ItemService {
     private final CommentRepository commentRepository;
 
     @Override
-    public Optional<ItemDto> addItem(Long userId, ItemDto itemDto) {
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isEmpty()) {
-            return Optional.empty();
-        }
+    public ItemDto addItem(Long userId, ItemDto itemDto) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
         Item item = ItemMapper.toItem(userId, itemDto);
         ItemDto newItemDto = ItemMapper.toItemDto(itemRepository.save(item));
-        return Optional.of(newItemDto);
+        return newItemDto;
     }
 
     @Override
-    public Optional<ItemDto> updateItem(Long userId, ItemDto itemDto, Long itemId) {
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isEmpty()) {
-            throw new EntityNotFoundException(String.format("user %d do not exists", userId));
-        }
-        Optional<Item> oldItem = itemRepository.findById(itemId);
-        if (oldItem == null) {
-            throw new EntityNotFoundException(String.format("item id %d not found", itemId));
-        }
+    public ItemDto updateItem(Long userId, ItemDto itemDto, Long itemId) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
+        Item oldItem = itemRepository.findById(itemId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("item id: %d was not found", itemId)));
         Item item = ItemMapper.toItem(userId, itemDto);
         item.setId(itemId);
         if (validateOwner(userId, item)) {
-            return Optional.empty();
+            throw new EntityNotFoundException(String.format("user id: %d is not an owner", userId));
         }
-        Item updatedItem = ItemMapper.updateItemWithItem(oldItem.get(), item);
+        Item updatedItem = ItemMapper.updateItemWithItem(oldItem, item);
         itemRepository.save(updatedItem);
-        ItemDto newItemDto = ItemMapper.toItemDto(updatedItem);
-        return Optional.of(newItemDto);
+        return ItemMapper.toItemDto(updatedItem);
     }
 
     @Override
-    public Optional<ItemWithBookingsDto> getItem(Long userId, Long itemId) {
-        Optional<Item> item = itemRepository.findById(itemId);
-        if (item.isEmpty()) {
-            return Optional.empty();
-        }
-        if (userId.equals(item.get().getOwner())) {
-            return Optional.of(itemWithBookingsDtoUpdater(item.get()));
+    public ItemWithBookingsDto getItem(Long userId, Long itemId) {
+        Item item = itemRepository.findById(itemId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("item id: %d was not found", itemId)));
+        if (userId.equals(item.getOwner())) {
+            return itemWithBookingsDtoUpdater(item);
         } else {
-            ItemWithBookingsDto itemWithBookingsDto = ItemMapper.toItemWithBookingsDto(item.get());
+            ItemWithBookingsDto itemWithBookingsDto = ItemMapper.toItemWithBookingsDto(item);
             updateComments(itemWithBookingsDto, itemId);
-            return Optional.of(itemWithBookingsDto);
+            return itemWithBookingsDto;
         }
     }
 
@@ -109,13 +100,6 @@ public class ItemServiceImp implements ItemService {
         itemRepository.delete(item.get());
     }
 
-    @Override
-    public void deleteUserItems(Long userId) {
-        userRepository.findById(userId);
-        Set<Item> items = itemRepository.findByOwner(userId).stream().collect(Collectors.toSet());
-        itemRepository.deleteAllInBatch(items);
-    }
-
     private boolean validateOwner(Long userId, Item item) {
         Optional<Item> oldItem = itemRepository.findById(item.getId());
         if (oldItem.isEmpty()) {
@@ -135,14 +119,14 @@ public class ItemServiceImp implements ItemService {
                 .max(Comparator.comparing(Booking::getEnd))
                 .orElse(null);
         if (lastBooking != null) {
-            itemWithBookingsDto.setLastBooking(BookingMapper.toLastBookingDto(lastBooking));
+            itemWithBookingsDto.setLastBooking(BookingMapper.toMinBookingDto(lastBooking));
         }
         Booking nextBooking = bookings.stream()
                 .filter(x -> x.getStart().isAfter(LocalDateTime.now()))
                 .min(Comparator.comparing(Booking::getEnd))
                 .orElse(null);
         if (nextBooking != null) {
-            itemWithBookingsDto.setNextBooking(BookingMapper.toNextBookingDto(nextBooking));
+            itemWithBookingsDto.setNextBooking(BookingMapper.toMinBookingDto(nextBooking));
         }
         updateComments(itemWithBookingsDto, item.getId());
         return itemWithBookingsDto;

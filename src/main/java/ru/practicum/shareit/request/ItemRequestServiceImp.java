@@ -9,8 +9,6 @@ import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
-import java.util.Optional;
-
 @Service
 @AllArgsConstructor
 public class ItemRequestServiceImp implements ItemRequestService {
@@ -19,45 +17,38 @@ public class ItemRequestServiceImp implements ItemRequestService {
 
     @Override
     public ItemRequestDto addItemRequest(Long userId, ItemRequestDto itemRequestDto) {
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isEmpty()) {
-            throw new EntityNotFoundException("user do not exists");
-        }
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
         ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestDto);
-        itemRequest.setRequestor(user.get());
+        itemRequest.setRequestor(user);
         return ItemRequestMapper.toItemRequestDto(itemRequestRepository.save(itemRequest));
     }
 
     @Override
     public ItemRequestDto updateItemRequest(Long itemRequestId, ItemRequestDto itemRequestDto, Long userId) {
-        Optional<User> user = userRepository.findById(userId);
-        Optional<ItemRequest> oldItemRequest = itemRequestRepository.findById(itemRequestId);
-        if (oldItemRequest.isEmpty() || user.isEmpty()) {
-            throw new EntityNotFoundException("item request or user do not exists");
-        }
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
+        ItemRequest oldItemRequest = itemRequestRepository.findById(itemRequestId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("request id: %d was not found", itemRequestId)));
         ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestDto);
-        itemRequest.setRequestor(user.get());
+        itemRequest.setRequestor(user);
         ItemRequest updatedItemRequest =
-                ItemRequestMapper.updateItemRequestWithItemRequest(oldItemRequest.get(), itemRequest);
+                ItemRequestMapper.updateItemRequestWithItemRequest(oldItemRequest, itemRequest);
         itemRequestRepository.save(updatedItemRequest);
         return ItemRequestMapper.toItemRequestDto(updatedItemRequest);
     }
 
     @Override
     public ItemRequestDto getItemRequest(Long itemRequestId) {
-        Optional<ItemRequest> itemRequest = itemRequestRepository.findById(itemRequestId);
-        if (itemRequest.isEmpty()) {
-            throw new EntityNotFoundException(String.format("item request id %d not found", itemRequestId));
-        }
-        return ItemRequestMapper.toItemRequestDto(itemRequest.get());
+        ItemRequest itemRequest = itemRequestRepository.findById(itemRequestId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("request id: %d was not found", itemRequestId)));
+        return ItemRequestMapper.toItemRequestDto(itemRequest);
     }
 
     @Override
     public void deleteItemRequest(Long itemRequestId) {
-        Optional<ItemRequest> itemRequest = itemRequestRepository.findById(itemRequestId);
-        if (itemRequest.isEmpty()) {
-            throw new EntityNotFoundException(String.format("item request id %d not found", itemRequestId));
-        }
-        itemRequestRepository.delete(itemRequest.get());
+        ItemRequest itemRequest = itemRequestRepository.findById(itemRequestId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("request id: %d was not found", itemRequestId)));
+        itemRequestRepository.delete(itemRequest);
     }
 }

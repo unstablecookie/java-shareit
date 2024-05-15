@@ -2,19 +2,17 @@ package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.booking.dto.BookingDto;
-import ru.practicum.shareit.booking.dto.BookingDtoFull;
+import ru.practicum.shareit.booking.dto.BookingFullDto;
 import ru.practicum.shareit.booking.model.State;
-import ru.practicum.shareit.error.EntityNotFoundException;
-import ru.practicum.shareit.error.UnsupportedStatusException;
+import ru.practicum.shareit.error.StateSubset;
 
 import javax.validation.Valid;
 import java.util.List;
-import java.util.Optional;
 
+@Validated
 @Slf4j
 @RequiredArgsConstructor
 @RestController
@@ -23,80 +21,49 @@ public class BookingController {
     private final BookingService bookingService;
 
     @PostMapping
-    public BookingDtoFull addBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
-                                 @Valid @RequestBody BookingDto bookingDto) {
+    public BookingFullDto addBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                     @Valid @RequestBody BookingDto bookingDto) {
         log.info("add new booking");
-        Optional<BookingDtoFull> addedBookingFull = bookingService.addBooking(bookingDto, userId);
-        if (addedBookingFull.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "not found");
-        }
-        return addedBookingFull.get();
+        return bookingService.addBooking(bookingDto, userId);
     }
 
     @GetMapping("/{bookingId}")
-    public BookingDtoFull getBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public BookingFullDto getBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
                                      @PathVariable Long bookingId) {
         log.info(String.format("get booking id: %d", bookingId));
-        Optional<BookingDtoFull> bookingDtoFull = bookingService.getBooking(bookingId, userId);
-        if (bookingDtoFull.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "not found");
-        }
-        return bookingDtoFull.get();
+        return bookingService.getBooking(bookingId, userId);
     }
 
     @GetMapping("/owner")
-    public List<BookingDtoFull> getBookingWithOwner(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    public List<BookingFullDto> getBookingWithOwner(@RequestHeader("X-Sharer-User-Id") Long userId) {
         log.info(String.format("get owner id: %d bookings", userId));
-        Optional<List<BookingDtoFull>> bookings = bookingService.getOwnerBookings(userId);
-        if (bookings.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "not found");
-        }
-        return bookings.get();
+        List<BookingFullDto> bookings = bookingService.getOwnerBookings(userId);
+        return bookings;
     }
 
     @GetMapping(value = "/owner", params = "state")
-    public List<BookingDtoFull> getBookingWithOwnerWithState(@RequestHeader("X-Sharer-User-Id") Long userId,
-                                                            @RequestParam(required = true, defaultValue = "ALL") String state) {
+    public List<BookingFullDto> getBookingWithOwnerWithState(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                                             @StateSubset(enumClass = State.class)
+                                                             @RequestParam(defaultValue = "ALL") String state) {
         log.info(String.format("get owner id: %d bookings with state", userId));
-        State queryStatus;
-        try {
-            queryStatus = State.valueOf(state);
-        } catch (IllegalArgumentException e) {
-            throw new UnsupportedStatusException();
-        }
-        Optional<List<BookingDtoFull>> bookings = bookingService.getOwnerBookingsWithState(userId, queryStatus);
-        if (bookings.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "not found");
-        }
-        return bookings.get();
+        List<BookingFullDto> bookings = bookingService.getOwnerBookingsWithState(userId, State.valueOf(state));
+        return bookings;
     }
 
     @GetMapping("")
-    public List<BookingDtoFull> getUserBookings(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    public List<BookingFullDto> getUserBookings(@RequestHeader("X-Sharer-User-Id") Long userId) {
         log.info(String.format("get user id: %d bookings", userId));
-        Optional<List<BookingDtoFull>> bookings = bookingService.getUserBookings(userId);
-        if (bookings.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found");
-        }
-        return bookings.get();
+        List<BookingFullDto> bookings = bookingService.getUserBookings(userId);
+        return bookings;
     }
 
     @GetMapping(path = "", params = "state")
-    public List<BookingDtoFull> getUserBookings(@RequestHeader("X-Sharer-User-Id") Long userId,
-                                               @RequestParam(required = true, defaultValue = "ALL") String state) {
+    public List<BookingFullDto> getUserBookings(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                                @StateSubset(enumClass = State.class)
+                                                @RequestParam(defaultValue = "ALL") String state) {
         log.info(String.format("get user id: %d bookings with state %s", userId, state));
-        State queryStatus;
-        try {
-            queryStatus = State.valueOf(state);
-        } catch (IllegalArgumentException e) {
-            throw new UnsupportedStatusException();
-        }
-        queryStatus = State.valueOf(state);
-        Optional<List<BookingDtoFull>> bookings = bookingService.getUserBookingsWithState(userId, queryStatus);
-        if (bookings.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "state not found");
-        }
-        return bookings.get();
+        List<BookingFullDto> bookings = bookingService.getUserBookingsWithState(userId, State.valueOf(state));
+        return bookings;
     }
 
     @DeleteMapping("/{bookingId}")
@@ -106,19 +73,11 @@ public class BookingController {
     }
 
     @PatchMapping("/{bookingId}")
-    public BookingDtoFull updateBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
-                               @PathVariable Long bookingId,
-                               @RequestParam(required = true) Boolean approved) {
+    public BookingFullDto updateBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                        @PathVariable Long bookingId,
+                                        @RequestParam(required = true) Boolean approved) {
         log.info(String.format("owner id: %d approves booking id %d", userId, bookingId));
-        try {
-            Optional<BookingDtoFull> updatedBooking = bookingService.updateBooking(userId, bookingId, approved);
-            if (updatedBooking.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "wrong booking owner");
-            }
-            return updatedBooking.get();
-        } catch (EntityNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "wrong booking owner");
-        }
+        return bookingService.updateBooking(userId, bookingId, approved);
     }
 
     @PutMapping("/cancel/{bookingId}")

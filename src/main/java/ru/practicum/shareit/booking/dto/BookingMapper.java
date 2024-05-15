@@ -28,8 +28,8 @@ public class BookingMapper {
                 .build();
     }
 
-    public static BookingDtoFull toBookingDtoFull(Booking booking) {
-        return BookingDtoFull.builder()
+    public static BookingFullDto toBookingDtoFull(Booking booking) {
+        return BookingFullDto.builder()
                 .id(booking.getId())
                 .start(booking.getStart())
                 .end(booking.getEnd())
@@ -39,20 +39,12 @@ public class BookingMapper {
                 .build();
     }
 
-    public static LastBookingDto toLastBookingDto(Booking booking) {
-        LastBookingDto lastBookingDto = LastBookingDto.builder()
+    public static BookingMinDto toMinBookingDto(Booking booking) {
+        BookingMinDto minBookingDto = BookingMinDto.builder()
                 .id(booking.getId())
                 .bookerId(booking.getUser().getId())
                 .build();
-        return lastBookingDto;
-    }
-
-    public static NextBookingDto toNextBookingDto(Booking booking) {
-        NextBookingDto nextBookingDto = NextBookingDto.builder()
-                .id(booking.getId())
-                .bookerId(booking.getUser().getId())
-                .build();
-        return nextBookingDto;
+        return minBookingDto;
     }
 
     public static Booking updateBookingWithBooking(Booking oldBooking, Booking newBooking) {

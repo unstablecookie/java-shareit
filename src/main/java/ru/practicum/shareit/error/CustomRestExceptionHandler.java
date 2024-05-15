@@ -20,4 +20,22 @@ public class CustomRestExceptionHandler extends ResponseEntityExceptionHandler {
         HttpStatus status = HttpStatus.BAD_REQUEST;
         return new ResponseEntity<>(new ErrorResponse(status, "item bookings not found"), status);
     }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    protected ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        return new ResponseEntity<>(new ErrorResponse(status, "entity not found"), status);
+    }
+
+    @ExceptionHandler(TimeOverlapException.class)
+    protected ResponseEntity<ErrorResponse> handleTimeOverlapException(TimeOverlapException ex) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        return new ResponseEntity<>(new ErrorResponse(status, ""), status);
+    }
+
+    @ExceptionHandler(UserMissMatchException.class)
+    protected ResponseEntity<ErrorResponse> handleUserMissMatchException(UserMissMatchException ex) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        return new ResponseEntity<>(new ErrorResponse(status, ""), status);
+    }
 }

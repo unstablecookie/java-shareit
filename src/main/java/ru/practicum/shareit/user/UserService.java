@@ -4,10 +4,9 @@ import ru.practicum.shareit.error.EntityAlreadyExistException;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface UserService {
-    Optional<UserDto> getUser(Long id);
+    UserDto getUser(Long id);
 
     List<UserDto> getUsers();
 
