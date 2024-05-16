@@ -17,40 +17,38 @@ public class ItemRequestServiceImp implements ItemRequestService {
 
     @Override
     public ItemRequestDto addItemRequest(Long userId, ItemRequestDto itemRequestDto) {
-        User user = userRepository.getUser(userId);
-        if (user == null) {
-            throw new EntityNotFoundException("user do not exists");
-        }
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
         ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestDto);
         itemRequest.setRequestor(user);
-        return ItemRequestMapper.toItemRequestDto(itemRequestRepository.addItemRequest(itemRequest));
+        return ItemRequestMapper.toItemRequestDto(itemRequestRepository.save(itemRequest));
     }
 
     @Override
     public ItemRequestDto updateItemRequest(Long itemRequestId, ItemRequestDto itemRequestDto, Long userId) {
-        User user = userRepository.getUser(userId);
-        ItemRequest oldItemRequest = itemRequestRepository.getItemRequest(itemRequestId);
-        if ((oldItemRequest == null) || (user == null)) {
-            throw new EntityNotFoundException("item request or user do not exists");
-        }
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
+        ItemRequest oldItemRequest = itemRequestRepository.findById(itemRequestId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("request id: %d was not found", itemRequestId)));
         ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestDto);
         itemRequest.setRequestor(user);
-        ItemRequest updatedItemRequest = ItemRequestMapper.updateItemRequestWithItemRequest(oldItemRequest, itemRequest);
-        itemRequestRepository.updateItemRequest(updatedItemRequest);
+        ItemRequest updatedItemRequest =
+                ItemRequestMapper.updateItemRequestWithItemRequest(oldItemRequest, itemRequest);
+        itemRequestRepository.save(updatedItemRequest);
         return ItemRequestMapper.toItemRequestDto(updatedItemRequest);
     }
 
     @Override
     public ItemRequestDto getItemRequest(Long itemRequestId) {
-        ItemRequest itemRequest = itemRequestRepository.getItemRequest(itemRequestId);
-        if (itemRequest == null) {
-            throw new EntityNotFoundException(String.format("item request id %d not found", itemRequestId));
-        }
+        ItemRequest itemRequest = itemRequestRepository.findById(itemRequestId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("request id: %d was not found", itemRequestId)));
         return ItemRequestMapper.toItemRequestDto(itemRequest);
     }
 
     @Override
     public void deleteItemRequest(Long itemRequestId) {
-        itemRequestRepository.deleteItemRequest(itemRequestId);
+        ItemRequest itemRequest = itemRequestRepository.findById(itemRequestId).orElseThrow(
+                () -> new EntityNotFoundException(String.format("request id: %d was not found", itemRequestId)));
+        itemRequestRepository.delete(itemRequest);
     }
 }
