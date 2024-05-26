@@ -40,7 +40,7 @@ public class ItemRequestServiceImp implements ItemRequestService {
         ItemRequest oldItemRequest = itemRequestRepository.findById(itemRequestId).orElseThrow(
                 () -> new EntityNotFoundException(String.format("request id: %d was not found", itemRequestId)));
         ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestDto, user);
-        if (userId != itemRequest.getRequestor().getId()) {
+        if (!userId.equals(itemRequest.getRequestor().getId())) {
             throw new EntityNotFoundException(String.format("user id: %d is not an author", userId));
         }
         itemRequest.setRequestor(user);
@@ -65,7 +65,7 @@ public class ItemRequestServiceImp implements ItemRequestService {
                 () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
         ItemRequest itemRequest = itemRequestRepository.findById(itemRequestId).orElseThrow(
                 () -> new EntityNotFoundException(String.format("request id: %d was not found", itemRequestId)));
-        if (itemRequest.getRequestor().getId() != userId) {
+        if (!itemRequest.getRequestor().getId().equals(userId)) {
             throw new EntityNotFoundException(String.format("user id: %d is not a requestor", userId));
         }
         itemRequestRepository.delete(itemRequest);
