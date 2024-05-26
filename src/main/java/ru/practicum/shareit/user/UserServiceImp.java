@@ -30,6 +30,9 @@ public class UserServiceImp implements UserService {
     @Override
     public UserDto addUser(Long userId, UserDto userDto) throws EntityAlreadyExistException {
         User user = UserMapper.toUser(userDto);
+        if (userId != null) {
+            user.setId(userId);
+        }
         User createdUser = userRepository.save(user);
         return UserMapper.toUserDto(createdUser);
     }

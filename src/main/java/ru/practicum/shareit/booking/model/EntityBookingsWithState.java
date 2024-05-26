@@ -1,7 +1,8 @@
 package ru.practicum.shareit.booking.model;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface EntityBookingsWithState {
-    List<Booking> getEntityBookingsWithState(Long id, Status status);
+    Page<Booking> getEntityBookingsWithState(Long id, Status status, Pageable page);
 }
