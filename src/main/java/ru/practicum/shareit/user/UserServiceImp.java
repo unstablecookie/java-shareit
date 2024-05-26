@@ -2,7 +2,6 @@ package ru.practicum.shareit.user;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.error.EntityAlreadyExistException;
 import ru.practicum.shareit.error.EntityNotFoundException;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.dto.UserMapper;
@@ -28,14 +27,14 @@ public class UserServiceImp implements UserService {
     }
 
     @Override
-    public UserDto addUser(Long userId, UserDto userDto) throws EntityAlreadyExistException {
+    public UserDto addUser(UserDto userDto) {
         User user = UserMapper.toUser(userDto);
         User createdUser = userRepository.save(user);
         return UserMapper.toUserDto(createdUser);
     }
 
     @Override
-    public UserDto updateUser(Long id, UserDto userDto) throws EntityAlreadyExistException {
+    public UserDto updateUser(Long id, UserDto userDto) {
         User oldUser = userRepository.findById(id).orElseThrow(
                 () -> new EntityNotFoundException(String.format("user id: %d was not found", id)));
         User user = UserMapper.toUser(userDto);

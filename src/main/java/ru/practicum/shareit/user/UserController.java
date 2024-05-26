@@ -2,7 +2,6 @@ package ru.practicum.shareit.user;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.error.EntityAlreadyExistException;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import javax.validation.Valid;
@@ -24,14 +23,13 @@ public class UserController {
         return userService.getUsers();
     }
 
-    @PostMapping(value = {"","/{userId}"})
-    public UserDto addUser(@PathVariable(required = false) Long userId, @Valid @RequestBody UserDto userDto)
-            throws EntityAlreadyExistException {
-        return userService.addUser(userId, userDto);
+    @PostMapping
+    public UserDto addUser(@Valid @RequestBody UserDto userDto) {
+        return userService.addUser(userDto);
     }
 
     @PatchMapping("/{userId}")
-    public UserDto updateUser(@PathVariable Long userId,@RequestBody UserDto userDto) throws EntityAlreadyExistException {
+    public UserDto updateUser(@PathVariable Long userId,@RequestBody UserDto userDto) {
         return userService.updateUser(userId, userDto);
     }
 

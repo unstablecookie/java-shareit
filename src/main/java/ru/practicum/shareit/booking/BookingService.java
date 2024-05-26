@@ -11,13 +11,13 @@ public interface BookingService {
 
     BookingFullDto getBooking(Long bookingId, Long userId);
 
-    List<BookingFullDto> getUserBookings(Long userId);
+    List<BookingFullDto> getUserBookings(Long userId, int from, int size);
 
-    List<BookingFullDto> getOwnerBookings(Long userId);
+    List<BookingFullDto> getOwnerBookings(Long userId, int from, int size);
 
-    List<BookingFullDto> getOwnerBookingsWithState(Long userId, State queryStatus);
+    List<BookingFullDto> getOwnerBookingsWithState(Long userId, State queryStatus, int from, int size);
 
-    List<BookingFullDto> getUserBookingsWithState(Long userId, State queryStatus);
+    List<BookingFullDto> getUserBookingsWithState(Long userId, State queryStatus, int from, int size);
 
     void deleteBooking(Long bookingId);
 

@@ -10,6 +10,7 @@ import ru.practicum.shareit.booking.model.State;
 import ru.practicum.shareit.error.StateSubset;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import java.util.List;
 
 @Validated
@@ -35,34 +36,42 @@ public class BookingController {
     }
 
     @GetMapping("/owner")
-    public List<BookingFullDto> getBookingWithOwner(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    public List<BookingFullDto> getBookingWithOwner(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                                    @RequestParam(required = false, defaultValue = "0") @Min(0) int from,
+                                                    @RequestParam(required = false, defaultValue = "10") @Min(1) int size) {
         log.info(String.format("get owner id: %d bookings", userId));
-        List<BookingFullDto> bookings = bookingService.getOwnerBookings(userId);
+        List<BookingFullDto> bookings = bookingService.getOwnerBookings(userId, from, size);
         return bookings;
     }
 
     @GetMapping(value = "/owner", params = "state")
     public List<BookingFullDto> getBookingWithOwnerWithState(@RequestHeader("X-Sharer-User-Id") Long userId,
                                                              @StateSubset(enumClass = State.class)
-                                                             @RequestParam(defaultValue = "ALL") String state) {
+                                                             @RequestParam(defaultValue = "ALL") String state,
+                                                             @RequestParam(required = false, defaultValue = "0") @Min(0) int from,
+                                                             @RequestParam(required = false, defaultValue = "10") @Min(1) int size) {
         log.info(String.format("get owner id: %d bookings with state", userId));
-        List<BookingFullDto> bookings = bookingService.getOwnerBookingsWithState(userId, State.valueOf(state));
+        List<BookingFullDto> bookings = bookingService.getOwnerBookingsWithState(userId, State.valueOf(state), from, size);
         return bookings;
     }
 
     @GetMapping("")
-    public List<BookingFullDto> getUserBookings(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    public List<BookingFullDto> getUserBookings(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                                @RequestParam(required = false, defaultValue = "0") @Min(0) int from,
+                                                @RequestParam(required = false, defaultValue = "10") @Min(1) int size) {
         log.info(String.format("get user id: %d bookings", userId));
-        List<BookingFullDto> bookings = bookingService.getUserBookings(userId);
+        List<BookingFullDto> bookings = bookingService.getUserBookings(userId, from, size);
         return bookings;
     }
 
     @GetMapping(path = "", params = "state")
     public List<BookingFullDto> getUserBookings(@RequestHeader("X-Sharer-User-Id") Long userId,
                                                 @StateSubset(enumClass = State.class)
-                                                @RequestParam(defaultValue = "ALL") String state) {
+                                                @RequestParam(defaultValue = "ALL") String state,
+                                                @RequestParam(required = false, defaultValue = "0") @Min(0) int from,
+                                                @RequestParam(required = false, defaultValue = "10") @Min(1) int size) {
         log.info(String.format("get user id: %d bookings with state %s", userId, state));
-        List<BookingFullDto> bookings = bookingService.getUserBookingsWithState(userId, State.valueOf(state));
+        List<BookingFullDto> bookings = bookingService.getUserBookingsWithState(userId, State.valueOf(state), from, size);
         return bookings;
     }
 

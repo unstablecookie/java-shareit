@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.dto.BookingMapper;
@@ -14,6 +15,8 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemMapper;
 import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.ItemRequestRepository;
+import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
@@ -28,12 +31,14 @@ public class ItemServiceImp implements ItemService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
+    private final ItemRequestRepository itemRequestRepository;
 
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
         User user = userRepository.findById(userId).orElseThrow(
                 () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
         Item item = ItemMapper.toItem(userId, itemDto);
+        updateRequest(itemDto, item);
         ItemDto newItemDto = ItemMapper.toItemDto(itemRepository.save(item));
         return newItemDto;
     }
@@ -68,21 +73,21 @@ public class ItemServiceImp implements ItemService {
     }
 
     @Override
-    public List<ItemWithBookingsDto> getUserItems(Long userId) {
+    public List<ItemWithBookingsDto> getUserItems(Long userId, int from, int size) {
         userRepository.findById(userId);
-        Set<Item> items = itemRepository.findByOwner(userId).stream().collect(Collectors.toSet());
-        return items.stream()
+        PageRequest page = PageRequest.of(from > 0 ? from / size : 0, size);
+        return itemRepository.findByOwnerOrderById(userId, page).stream()
                 .map(x -> itemWithBookingsDtoUpdater(x))
-                .sorted((a, b) -> a.getId().compareTo(b.getId()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<ItemDto> searchItem(String searchText) {
+    public List<ItemDto> searchItem(String searchText, int from, int size) {
         if (searchText.length() < 1) {
             return List.of();
         }
-        List<Item> items = itemRepository.findByDescriptionContainingIgnoreCase(searchText.toLowerCase()).stream()
+        PageRequest page = PageRequest.of(from > 0 ? from / size : 0, size);
+        List<Item> items = itemRepository.findByDescriptionContainingIgnoreCase(searchText.toLowerCase(), page).stream()
                 .filter(x -> x.getAvailable().equals(Boolean.TRUE))
                 .sorted((a, b) -> a.getId().compareTo(b.getId()))
                 .collect(Collectors.toList());
@@ -138,5 +143,16 @@ public class ItemServiceImp implements ItemService {
                 .map(x -> CommentMapper.toCommentDtoFull(x, x.getAuthor().getName()))
                 .sorted((a, b) -> a.getId().compareTo(b.getId()))
                 .collect(Collectors.toList()));
+    }
+
+    private void updateRequest(ItemDto itemDto, Item item) {
+        if (itemDto.getRequestId() != null) {
+            ItemRequest itemRequest = itemRequestRepository.findById(itemDto.getRequestId()).orElseThrow(
+                    () -> new EntityNotFoundException(String.format("could not find the request id: %d",
+                            itemDto.getRequestId())));
+            itemRequest.setAvailable(Boolean.TRUE);
+            item.setRequest(itemRequest);
+            itemRequestRepository.save(itemRequest);
+        }
     }
 }
