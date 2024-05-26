@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingFullDto;
 import ru.practicum.shareit.booking.dto.BookingMapper;
@@ -137,6 +138,51 @@ public class TestBookingServiceImp {
     }
 
     @Test
+    void addBooking_failure_startAfterEnd() {
+        //given
+        LocalDateTime startAfterEnd = LocalDateTime.of(2026, 1, 1, 1, 1, 1);
+        //when
+        bookingDto.setStart(startAfterEnd);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        //then
+        assertThrows(ResponseStatusException.class, () -> bookingService.addBooking(bookingDto, userId));
+    }
+
+    @Test
+    void addBooking_failure_noItem() {
+        //given
+        Long nonExistingItemId = 999L;
+        //when
+        bookingDto.setItemId(nonExistingItemId);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        when(itemRepository.findById(anyLong())).thenThrow(EntityNotFoundException.class);
+        //then
+        assertThrows(EntityNotFoundException.class, () -> bookingService.addBooking(bookingDto, userId));
+    }
+
+    @Test
+    void addBooking_failure_ownerIsRequestor() {
+        //when
+        bookingDto.setBookerId(ownerId);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
+        //then
+        assertThrows(EntityNotFoundException.class, () -> bookingService.addBooking(bookingDto, ownerId));
+    }
+
+    @Test
+    void addBooking_failure_itemNotAvailable() {
+        //given
+        Boolean itemNotAvailable = Boolean.FALSE;
+        //when
+        item.setAvailable(itemNotAvailable);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
+        //then
+        assertThrows(ResponseStatusException.class, () -> bookingService.addBooking(bookingDto, userId));
+    }
+
+    @Test
     void addBooking_failure_nonExistingItem() {
         //when
         Long wrongId = -999L;
@@ -146,9 +192,9 @@ public class TestBookingServiceImp {
     }
 
     @Test
-    void addBooking_failure_withTimeIntercetion() {
+    void addBooking_failure_withTimeIntersetion() {
         //given
-        Booking intercetionBooking = Booking.builder()
+        Booking intersetionBooking = Booking.builder()
                 .id(2L)
                 .start(LocalDateTime.of(2025, 1, 1, 0, 1, 1))
                 .end(LocalDateTime.of(2025, 1, 1, 1, 2, 1))
@@ -159,7 +205,7 @@ public class TestBookingServiceImp {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
         //when
-        when(bookingRepository.findByItemIdOrderByStartDesc(anyLong())).thenReturn(List.of(intercetionBooking));
+        when(bookingRepository.findByItemIdOrderByStartDesc(anyLong())).thenReturn(List.of(intersetionBooking));
         //then
         assertThrows(TimeOverlapException.class, () -> bookingService.addBooking(bookingDto, userId));
     }

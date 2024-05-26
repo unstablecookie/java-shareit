@@ -102,6 +102,17 @@ public class TestCommentServiceImp {
     }
 
     @Test
+    void addItemComment_failure_noBookings() {
+        //given
+        Long itemId = 1L;
+        //when
+        when(bookingRepository.findUsersBookingForAnItemOrderByStartDesc(anyLong(), anyLong()))
+                .thenReturn(List.of());
+        //then
+        assertThrows(UnsupportedStatusException.class, () -> commentService.addItemComment(authorId, commentDto, itemId));
+    }
+
+    @Test
     void addItemComment_failure_bookingWasRejected() {
         //given
         firstBooking.setStatus(Status.REJECTED);

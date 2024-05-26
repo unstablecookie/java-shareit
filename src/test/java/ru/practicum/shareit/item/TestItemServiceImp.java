@@ -289,7 +289,7 @@ public class TestItemServiceImp {
     void deleteItem_failure_noItem() {
         //when
         Long wrongId = -999L;
-        when(itemRepository.findById(anyLong())).thenThrow(EntityNotFoundException.class);
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.empty());
         //then
         assertThrows(EntityNotFoundException.class, () -> itemService.deleteItem(anyLong()));
     }

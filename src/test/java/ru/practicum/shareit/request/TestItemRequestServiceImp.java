@@ -317,4 +317,15 @@ public class TestItemRequestServiceImp {
         //then
         assertThrows(EntityNotFoundException.class, () -> itemRequestService.deleteItemRequest(userId, wrongItemId));
     }
+
+    @Test
+    void deleteItemRequest_failure_userIsNotAuthor() {
+        //given
+        Long wrongUserId = 999L;
+        //when
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        when(itemRequestRepository.findById(anyLong())).thenReturn(Optional.of(itemRequest));
+        //then
+        assertThrows(EntityNotFoundException.class, () -> itemRequestService.deleteItemRequest(wrongUserId, itemRequestId));
+    }
 }

@@ -92,7 +92,7 @@ public class BookingServiceImp implements BookingService {
             case PAST: return getBookingsWithTimeCon(userId, bookingRepository::findByOwnerIdAndEndBefore, page);
             case FUTURE: return getBookingsWithTimeCon(userId, bookingRepository::findByOwnerIdAndStartAfter, page);
             case CURRENT: return getBookingsWithTimeCon(userId, bookingRepository::findByOwnerIdAndTimeCurrent, page);
-            default: return List.of();
+            default: return getBookingsWithCondition(userId, bookingRepository::findAllOwnerBookings, page);
         }
     }
 
@@ -111,7 +111,7 @@ public class BookingServiceImp implements BookingService {
             case PAST: return getBookingsWithTimeCon(userId, bookingRepository::findByUserIdAndEndBefore, page);
             case FUTURE: return getBookingsWithTimeCon(userId, bookingRepository::findByUserIdAndStartAfter, page);
             case CURRENT: return getBookingsWithTimeCon(userId, bookingRepository::findByUserIdAndTimeCurrent, page);
-            default: return List.of();
+            default: return getBookingsWithCondition(userId, bookingRepository::findByUserId, page);
         }
     }
 
