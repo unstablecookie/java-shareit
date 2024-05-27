@@ -31,16 +31,13 @@ public class TestUserServiceInt {
     private final UserService userService;
     private User user;
     private UserDto userDto;
-    private Long userId = 1L;
-    private String userName = "Ken";
-    private String userEmail = "eken@mail.ts";
 
     @BeforeEach
     private void init() {
         user = User.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
+                .id(1L)
+                .name("Ken")
+                .email("eken@mail.ts")
                 .build();
         userDto = UserMapper.toUserDto(user);
     }
@@ -50,7 +47,7 @@ public class TestUserServiceInt {
         //given
         userService.addUser(userDto);
         //when
-        UserDto returnedUser = userService.getUser(userId);
+        UserDto returnedUser = userService.getUser(user.getId());
         User queryUser = entityManager.createQuery("SELECT u FROM User u", User.class)
                 .getSingleResult();
         //then
@@ -96,7 +93,7 @@ public class TestUserServiceInt {
         //when
         String newName = "new name";
         userDto.setName(newName);
-        UserDto updatedUser = userService.updateUser(userId, userDto);
+        UserDto updatedUser = userService.updateUser(user.getId(), userDto);
         User queryUser = entityManager.createQuery("SELECT u FROM User u", User.class)
                 .getSingleResult();
         //then
@@ -113,7 +110,7 @@ public class TestUserServiceInt {
         //given
         userService.addUser(userDto);
         //when
-        userService.deleteUser(userId);
+        userService.deleteUser(user.getId());
         List<User> users = entityManager.createQuery("select u from User as u ", User.class).getResultList();
         //then
         assertThat(users)

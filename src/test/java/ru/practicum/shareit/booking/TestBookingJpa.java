@@ -35,43 +35,14 @@ public class TestBookingJpa {
     private Item item;
     private User user;
     private User owner;
-    private Long itemId = 1L;
-    private String itemName = "thing";
-    private String itemDescription = "very thing";
-    private Long bookingId = 1L;
-    private Long userId = 1L;
-    private Long ownerId = 2L;
-    private String ownerName = "Peter";
-    private String ownerEmail = "iown@mail.ts";
-    private String userName = "Ken";
-    private String userEmail = "eken@mail.ts";
     private PageRequest page = PageRequest.of(0, 10);
-    LocalDateTime start = LocalDateTime.of(2025, 1, 1, 1, 1, 1);
-    LocalDateTime end = LocalDateTime.of(2025, 1, 1, 2, 1, 1);
 
     @BeforeEach
     private void init() {
-        user = User.builder()
-                .name(userName)
-                .email(userEmail)
-                .build();
-        owner = User.builder()
-                .name(ownerName)
-                .email(ownerEmail)
-                .build();
-        item = Item.builder()
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .owner(ownerId)
-                .build();
-        booking = Booking.builder()
-                .start(start)
-                .end(end)
-                .item(item)
-                .user(user)
-                .status(Status.WAITING)
-                .build();
+        user = createUser("Ken", "eken@mail.ts");
+        owner = createUser("Peter", "iown@mail.ts");
+        item = createItem();
+        booking = createBooking();
         em.persist(user);
         em.persist(owner);
         em.persist(item);
@@ -81,22 +52,18 @@ public class TestBookingJpa {
     @Test
     void findUsersBookingForAnItemOrderByStartDesc_success() {
         //when
-        List<Booking> bookings = bookingRepository.findUsersBookingForAnItemOrderByStartDesc(userId, itemId);
+        List<Booking> bookings = bookingRepository.findUsersBookingForAnItemOrderByStartDesc(user.getId(), item.getId());
         //then
         assertThat(bookings)
                 .isNotNull()
                 .isInstanceOf(List.class)
                 .hasSize(1);
-        em.remove(user);
-        em.remove(owner);
-        em.remove(item);
-        em.remove(booking);
     }
 
     @Test
     void findByItemIdOrderByStartDesc_success() {
         //when
-        List<Booking> bookings = bookingRepository.findByItemIdOrderByStartDesc(itemId);
+        List<Booking> bookings = bookingRepository.findByItemIdOrderByStartDesc(item.getId());
         //then
         assertThat(bookings)
                 .isNotNull()
@@ -107,7 +74,7 @@ public class TestBookingJpa {
     @Test
     void findAllOwnerBookings_success() {
         //when
-        List<Booking> bookings = bookingRepository.findAllOwnerBookings(ownerId, page).stream()
+        List<Booking> bookings = bookingRepository.findAllOwnerBookings(owner.getId(), page).stream()
                 .collect(Collectors.toList());
         //then
         assertThat(bookings)
@@ -119,7 +86,7 @@ public class TestBookingJpa {
     @Test
     void findAllOwnerBookingsOrderByStartDesc_success() {
         //when
-        List<Booking> bookings = bookingRepository.findAllOwnerBookingsOrderByStartDesc(ownerId, page).stream()
+        List<Booking> bookings = bookingRepository.findAllOwnerBookingsOrderByStartDesc(owner.getId(), page).stream()
                 .collect(Collectors.toList());
         //then
         assertThat(bookings)
@@ -131,7 +98,8 @@ public class TestBookingJpa {
     @Test
     void findAllOwnerBookingsAndStatus_success() {
         //when
-        List<Booking> bookings = bookingRepository.findAllOwnerBookingsAndStatus(ownerId, Status.WAITING, page).stream()
+        List<Booking> bookings = bookingRepository.findAllOwnerBookingsAndStatus(owner.getId(), Status.WAITING, page)
+                .stream()
                 .collect(Collectors.toList());
         //then
         assertThat(bookings)
@@ -143,7 +111,7 @@ public class TestBookingJpa {
     @Test
     void findByUserIdAndStatus_success() {
         //when
-        List<Booking> bookings = bookingRepository.findByUserIdAndStatus(userId, Status.WAITING, page).stream()
+        List<Booking> bookings = bookingRepository.findByUserIdAndStatus(user.getId(), Status.WAITING, page).stream()
                 .collect(Collectors.toList());
         //then
         assertThat(bookings)
@@ -157,7 +125,7 @@ public class TestBookingJpa {
         //given
         LocalDateTime beforeEnd = LocalDateTime.of(2025, 1, 1, 3, 1, 1);
         //when
-        List<Booking> bookings = bookingRepository.findByOwnerIdAndEndBefore(ownerId, beforeEnd, page).stream()
+        List<Booking> bookings = bookingRepository.findByOwnerIdAndEndBefore(owner.getId(), beforeEnd, page).stream()
                 .collect(Collectors.toList());
         //then
         assertThat(bookings)
@@ -171,7 +139,7 @@ public class TestBookingJpa {
         //given
         LocalDateTime startAfter = LocalDateTime.of(2025, 1, 1, 0, 1, 1);
         //when
-        List<Booking> bookings = bookingRepository.findByOwnerIdAndStartAfter(ownerId, startAfter, page).stream()
+        List<Booking> bookings = bookingRepository.findByOwnerIdAndStartAfter(owner.getId(), startAfter, page).stream()
                 .collect(Collectors.toList());
         //then
         assertThat(bookings)
@@ -185,7 +153,7 @@ public class TestBookingJpa {
         //given
         LocalDateTime current = LocalDateTime.of(2025, 1, 1, 1, 30, 1);
         //when
-        List<Booking> bookings = bookingRepository.findByOwnerIdAndTimeCurrent(ownerId, current, page).stream()
+        List<Booking> bookings = bookingRepository.findByOwnerIdAndTimeCurrent(owner.getId(), current, page).stream()
                 .collect(Collectors.toList());
         //then
         assertThat(bookings)
@@ -199,7 +167,7 @@ public class TestBookingJpa {
         //given
         LocalDateTime endBefore = LocalDateTime.of(2025, 2, 1, 1, 1, 1);
         //when
-        List<Booking> bookings = bookingRepository.findByUserIdAndEndBefore(userId, endBefore, page).stream()
+        List<Booking> bookings = bookingRepository.findByUserIdAndEndBefore(user.getId(), endBefore, page).stream()
                 .collect(Collectors.toList());
         //then
         assertThat(bookings)
@@ -213,7 +181,7 @@ public class TestBookingJpa {
         //given
         LocalDateTime startAfter = LocalDateTime.of(2024, 2, 1, 1, 1, 1);
         //when
-        List<Booking> bookings = bookingRepository.findByUserIdAndStartAfter(userId, startAfter, page).stream()
+        List<Booking> bookings = bookingRepository.findByUserIdAndStartAfter(user.getId(), startAfter, page).stream()
                 .collect(Collectors.toList());
         //then
         assertThat(bookings)
@@ -227,7 +195,7 @@ public class TestBookingJpa {
         //given
         LocalDateTime current = LocalDateTime.of(2025, 1, 1, 1, 30, 1);
         //when
-        List<Booking> bookings = bookingRepository.findByUserIdAndTimeCurrent(userId, current, page).stream()
+        List<Booking> bookings = bookingRepository.findByUserIdAndTimeCurrent(user.getId(), current, page).stream()
                 .collect(Collectors.toList());
         //then
         assertThat(bookings)
@@ -235,7 +203,30 @@ public class TestBookingJpa {
                 .isInstanceOf(List.class)
                 .hasSize(1);
     }
-    //given
-    //when
-    //then
+
+    private User createUser(String userName, String userEmail) {
+        return User.builder()
+                .name(userName)
+                .email(userEmail)
+                .build();
+    }
+
+    private Item createItem() {
+        return Item.builder()
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .owner(2L)
+                .build();
+    }
+
+    private Booking createBooking() {
+        return Booking.builder()
+                .start(LocalDateTime.of(2025, 1, 1, 1, 1, 1))
+                .end(LocalDateTime.of(2025, 1, 1, 2, 1, 1))
+                .item(item)
+                .user(user)
+                .status(Status.WAITING)
+                .build();
+    }
 }

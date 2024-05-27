@@ -39,8 +39,8 @@ public class ItemRequestController {
         return itemRequestService.getItemRequest(userId, itemRequestId);
     }
 
-    @GetMapping("")
-    public List<ItemRequestDto> getUserItemRequests(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    @GetMapping
+    public List<ItemRequestDto> getItemRequestByUser(@RequestHeader("X-Sharer-User-Id") Long userId) {
         log.info(String.format("get user id: %d item requests", userId));
         return itemRequestService.getUserItemRequests(userId);
     }

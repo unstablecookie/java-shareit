@@ -25,7 +25,6 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.UserService;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.dto.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,103 +48,50 @@ public class TestBookingServiceInt {
     private final ItemService itemService;
     private Booking booking;
     private BookingDto bookingDto;
-    private BookingFullDto bookingFullDto;
-    private ItemDto itemDto;
-    private UserDto userDto;
-    private UserDto ownerDto;
     private User user;
     private User owner;
     private Item item;
-    private Booking firstBooking;
-    private Long userId = 1L;
-    private Long itemId = 1L;
-    private Long ownerId = 2L;
-    private String ownerName = "Peter";
-    private String ownerEmail = "iown@mail.ts";
-    private String userName = "Ken";
-    private String userEmail = "eken@mail.ts";
-    private String itemName = "thing";
-    private String itemDescription = "very thing";
     private int defaultFrom = 0;
     private int defaultSize = 10;
 
     @BeforeEach
     private void init() {
-        LocalDateTime start = LocalDateTime.of(2025, 1, 1, 1, 1, 1);
-        LocalDateTime end = LocalDateTime.of(2025, 1, 1, 2, 1, 1);
-        itemDto = ItemDto.builder()
-                .id(itemId)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .build();
-        userDto = UserDto.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
-        bookingDto = BookingDto.builder()
-                .start(start)
-                .end(end)
-                .itemId(1L)
-                .bookerId(1L)
-                .build();
-        bookingFullDto = BookingFullDto.builder()
-                .id(1L)
-                .start(start)
-                .end(end)
-                .item(itemDto)
-                .booker(userDto)
-                .status(Status.WAITING)
-                .build();
-        user = User.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
-        owner = User.builder()
-                .id(ownerId)
-                .name(ownerName)
-                .email(ownerEmail)
-                .build();
-        ownerDto = UserMapper.toUserDto(owner);
-        item = Item.builder()
-                .id(itemId)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .owner(ownerId)
-                .build();
-        firstBooking = BookingMapper.toBooking(bookingDto, item, user);
-        userService.addUser(userDto);
-        userService.addUser(ownerDto);
-        itemService.addItem(ownerId, itemDto);
+        user = createUser("Ken", "eken@mail.ts");
+        owner = createUser("Peter", "iown@mail.ts");
+        user.setId(1L);
+        owner.setId(2L);
+        item = createItem();
+        item.setId(1L);
+        bookingDto = createBookingDto();
+        booking = BookingMapper.toBooking(bookingDto, item, user);
+        booking.setId(1L);
+        userService.addUser(createUserDto());
+        userService.addUser(UserDto.builder().id(2L).name("Peter").email("iown@mail.ts").build());
+        itemService.addItem(owner.getId(), createItemDto());
     }
 
     @Test
     void addBooking_success() {
-        //given
-        firstBooking.setId(1L);
         //when
-        bookingService.addBooking(bookingDto, userId);
+        bookingService.addBooking(bookingDto, user.getId());
         Booking queryBooking = entityManager.createQuery("SELECT b FROM Booking b", Booking.class)
                 .getSingleResult();
         //then
         assertThat(queryBooking)
                 .isNotNull()
                 .isInstanceOf(Booking.class)
-                .isEqualTo(firstBooking);
+                .isEqualTo(booking);
     }
 
     @Test
     void getBooking_success() {
         //given
-        bookingService.addBooking(bookingDto, userId);
-        Long bookingId = 1L;
+        bookingService.addBooking(bookingDto, user.getId());
+        BookingFullDto bookingFullDto = createBookingFullDto();
         //when
-        BookingFullDto returnedBookingFullDto = bookingService.getBooking(bookingId, userId);
+        BookingFullDto returnedBookingFullDto = bookingService.getBooking(booking.getId(), user.getId());
         Booking queryBooking = entityManager.createQuery("SELECT b FROM Booking b where b.id = :id", Booking.class)
-                .setParameter("id", bookingId)
+                .setParameter("id", booking.getId())
                 .getSingleResult();
         //then
         assertThat(returnedBookingFullDto)
@@ -159,12 +105,12 @@ public class TestBookingServiceInt {
     @Test
     void getOwnerBookings_success() {
         //given
-        bookingService.addBooking(bookingDto, userId);
+        bookingService.addBooking(bookingDto, user.getId());
         //when
-        List<BookingFullDto> ownerBookings = bookingService.getOwnerBookings(ownerId, defaultFrom, defaultSize);
+        List<BookingFullDto> ownerBookings = bookingService.getOwnerBookings(owner.getId(), defaultFrom, defaultSize);
         List<Booking> queryBookings =
                 entityManager.createQuery("select b from Booking as b join b.item as i where i.owner = :id", Booking.class)
-                        .setParameter("id", ownerId)
+                        .setParameter("id", owner.getId())
                                 .getResultList();
         List<BookingFullDto> queryBookingsFullDto = queryBookings.stream()
                         .map(x -> BookingMapper.toBookingDtoFull(x))
@@ -182,25 +128,25 @@ public class TestBookingServiceInt {
     void getOwnerBookingsWithState_success() {
         //given
         bookingDto.setStatus(Status.REJECTED);
-        bookingService.addBooking(bookingDto, userId);
+        bookingService.addBooking(bookingDto, user.getId());
         //when
-        List<BookingFullDto> ownerBookingsRejected = bookingService.getOwnerBookingsWithState(ownerId, State.REJECTED,
+        List<BookingFullDto> ownerBookingsRejected = bookingService.getOwnerBookingsWithState(owner.getId(), State.REJECTED,
                 defaultFrom, defaultSize);
         List<Booking> queryBookingsRejected =
                 entityManager.createQuery("select b from Booking as b join b.item as i " +
                                 "where i.owner = :id and b.status = :status", Booking.class)
-                        .setParameter("id", ownerId)
+                        .setParameter("id", owner.getId())
                         .setParameter("status", Status.REJECTED)
                         .getResultList();
         List<BookingFullDto> queryBookingsRejectedFullDto = queryBookingsRejected.stream()
                 .map(x -> BookingMapper.toBookingDtoFull(x))
                 .collect(Collectors.toList());
-        List<BookingFullDto> ownerBookingsWaiting = bookingService.getOwnerBookingsWithState(ownerId, State.WAITING,
+        List<BookingFullDto> ownerBookingsWaiting = bookingService.getOwnerBookingsWithState(owner.getId(), State.WAITING,
                 defaultFrom, defaultSize);
         List<Booking> queryBookingsWaiting =
                 entityManager.createQuery("select b from Booking as b join b.item as i " +
                                 "where i.owner = :id and b.status = :status", Booking.class)
-                        .setParameter("id", ownerId)
+                        .setParameter("id", owner.getId())
                         .setParameter("status", Status.WAITING)
                         .getResultList();
                 //then
@@ -222,9 +168,9 @@ public class TestBookingServiceInt {
     void getUserBookingsWithState_success() {
         //given
         bookingDto.setStatus(Status.REJECTED);
-        bookingService.addBooking(bookingDto, userId);
+        bookingService.addBooking(bookingDto, user.getId());
         //when
-        List<BookingFullDto> userBookingsRejected = bookingService.getUserBookingsWithState(userId, State.REJECTED,
+        List<BookingFullDto> userBookingsRejected = bookingService.getUserBookingsWithState(user.getId(), State.REJECTED,
                 defaultFrom, defaultSize);
         List<Booking> queryBookingsRejected =
                 entityManager.createQuery("select b from Booking as b " +
@@ -235,7 +181,7 @@ public class TestBookingServiceInt {
         List<BookingFullDto> queryBookingsRejectedFullDto = queryBookingsRejected.stream()
                 .map(x -> BookingMapper.toBookingDtoFull(x))
                 .collect(Collectors.toList());
-        List<BookingFullDto> userBookingsWaiting = bookingService.getUserBookingsWithState(userId, State.WAITING,
+        List<BookingFullDto> userBookingsWaiting = bookingService.getUserBookingsWithState(user.getId(), State.WAITING,
                 defaultFrom, defaultSize);
         List<Booking> queryBookingsWaiting =
                 entityManager.createQuery("select b from Booking as b " +
@@ -261,9 +207,9 @@ public class TestBookingServiceInt {
     @Test
     void getUserBookings_success() {
         //given
-        bookingService.addBooking(bookingDto, userId);
+        bookingService.addBooking(bookingDto, user.getId());
         //when
-        List<BookingFullDto> userBookings = bookingService.getUserBookings(userId, defaultFrom, defaultSize);
+        List<BookingFullDto> userBookings = bookingService.getUserBookings(user.getId(), defaultFrom, defaultSize);
         List<Booking> queryBookings =
                 entityManager.createQuery("select b from Booking as b where b.user = :user", Booking.class)
                         .setParameter("user", user)
@@ -283,7 +229,7 @@ public class TestBookingServiceInt {
     @Test
     void deleteBooking_success() {
         //given
-        bookingService.addBooking(bookingDto, userId);
+        bookingService.addBooking(bookingDto, user.getId());
         Long bookingId = 1L;
         //when
         bookingService.deleteBooking(bookingId);
@@ -298,12 +244,12 @@ public class TestBookingServiceInt {
     void updateBooking_success() {
         //given
         Long bookingId = 1L;
-        bookingService.addBooking(bookingDto, userId);
+        bookingService.addBooking(bookingDto, user.getId());
         //when
         Booking queryBooking = entityManager.createQuery("SELECT b FROM Booking b where b.id = :id", Booking.class)
                 .setParameter("id", bookingId)
                 .getSingleResult();
-        BookingFullDto updatedBookingFullDto = bookingService.updateBooking(ownerId, bookingId, Boolean.TRUE);
+        BookingFullDto updatedBookingFullDto = bookingService.updateBooking(owner.getId(), bookingId, Boolean.TRUE);
         //then
         assertThat(BookingMapper.toBookingDtoFull(queryBooking))
                 .isEqualTo(updatedBookingFullDto);
@@ -313,9 +259,9 @@ public class TestBookingServiceInt {
     void cancelBooking_success() {
         //given
         Long bookingId = 1L;
-        bookingService.addBooking(bookingDto, userId);
+        bookingService.addBooking(bookingDto, user.getId());
         //when
-        bookingService.cancelBooking(userId, bookingId);
+        bookingService.cancelBooking(user.getId(), bookingId);
         Booking queryBooking = entityManager.createQuery("SELECT b FROM Booking b where b.id = :id", Booking.class)
                 .setParameter("id", bookingId)
                 .getSingleResult();
@@ -325,5 +271,58 @@ public class TestBookingServiceInt {
                 .isInstanceOf(Booking.class);
         assertThat(queryBooking.getStatus())
                 .isEqualTo(Status.CANCELED);
+    }
+
+    private UserDto createUserDto() {
+        return UserDto.builder()
+                .id(1L)
+                .name("Ken")
+                .email("eken@mail.ts")
+                .build();
+    }
+
+    private ItemDto createItemDto() {
+        return ItemDto.builder()
+                .id(1L)
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .build();
+    }
+
+    private BookingDto createBookingDto() {
+        return BookingDto.builder()
+                .start(LocalDateTime.of(2025, 1, 1, 1, 1, 1))
+                .end(LocalDateTime.of(2025, 1, 1, 2, 1, 1))
+                .itemId(1L)
+                .bookerId(1L)
+                .build();
+    }
+
+    private BookingFullDto createBookingFullDto() {
+        return BookingFullDto.builder()
+                .id(1L)
+                .start(LocalDateTime.of(2025, 1, 1, 1, 1, 1))
+                .end(LocalDateTime.of(2025, 1, 1, 2, 1, 1))
+                .item(createItemDto())
+                .booker(createUserDto())
+                .status(Status.WAITING)
+                .build();
+    }
+
+    private User createUser(String userName, String userEmail) {
+        return User.builder()
+                .name(userName)
+                .email(userEmail)
+                .build();
+    }
+
+    private Item createItem() {
+        return Item.builder()
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .owner(2L)
+                .build();
     }
 }

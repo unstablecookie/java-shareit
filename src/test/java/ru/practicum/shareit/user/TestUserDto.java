@@ -12,13 +12,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @JsonTest
 public class TestUserDto {
-    private Long userId = 1L;
-    private String userName = "Ken";
-    private String userEmail = "eken@mail.ts";
     private UserDto userDto = userDto = UserDto.builder()
-            .id(userId)
-            .name(userName)
-            .email(userEmail)
+            .id(1L)
+            .name("Ken")
+            .email("eken@mail.ts")
             .build();
 
     @Autowired

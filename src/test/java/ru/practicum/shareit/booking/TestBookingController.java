@@ -1,7 +1,6 @@
 package ru.practicum.shareit.booking;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -10,6 +9,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingFullDto;
 import ru.practicum.shareit.booking.model.State;
@@ -20,10 +23,6 @@ import ru.practicum.shareit.error.UnsupportedStatusException;
 import ru.practicum.shareit.error.UserMissMatchException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.user.dto.UserDto;
-
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -43,56 +42,16 @@ public class TestBookingController {
     private ObjectMapper mapper;
     @Autowired
     private MockMvc mvc;
-    private BookingDto bookingDto;
-    private BookingFullDto bookingFullDto;
-    private UserDto userDto;
-    private ItemDto itemDto;
-    private Long userId = 1L;
-    private Long itemId = 1L;
-    private String userName = "Ken";
-    private String userEmail = "eken@mail.ts";
-    private String itemName = "thing";
-    private String itemDescription = "very thing";
+    private Long bookingId = 1L;
     private final String headerXSharerUserId = "X-Sharer-User-Id";
-    LocalDateTime start;
-    LocalDateTime end;
-
-    @BeforeEach
-    private void init() {
-        start = LocalDateTime.of(2025, 1, 1, 1, 1, 1);
-        end = LocalDateTime.of(2025, 1, 1, 2, 1, 1);
-        bookingDto = BookingDto.builder()
-                .start(start)
-                .end(end)
-                .itemId(1L)
-                .bookerId(1L)
-                .build();
-        userDto = UserDto.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
-        itemDto = ItemDto.builder()
-                .id(itemId)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .build();
-        bookingFullDto = BookingFullDto.builder()
-                .id(1L)
-                .start(start)
-                .end(end)
-                .item(itemDto)
-                .booker(userDto)
-                .status(Status.WAITING)
-                .build();
-    }
+    LocalDateTime start = LocalDateTime.of(2025, 1, 1, 1, 1, 1);
+    LocalDateTime end = LocalDateTime.of(2025, 1, 1, 2, 1, 1);
 
     @Test
     void addBooking_success() throws Exception {
         //given
-        Long bookingId = 1L;
-        //when
+        BookingDto bookingDto = createBookingDto();
+        BookingFullDto bookingFullDto = createBookingFullDto();
         when(bookingService.addBooking(any(BookingDto.class), anyLong()))
                 .thenReturn(bookingFullDto);
         //then
@@ -114,8 +73,7 @@ public class TestBookingController {
     @Test
     void addBooking_failure_timeOverlap() throws Exception {
         //given
-        Long bookingId = 1L;
-        //when
+        BookingDto bookingDto = createBookingDto();
         when(bookingService.addBooking(any(BookingDto.class), anyLong())).thenThrow(TimeOverlapException.class);
         //then
         mvc.perform(post("/bookings")
@@ -130,8 +88,6 @@ public class TestBookingController {
     @Test
     void getBooking_failure_wrongBookingId() throws Exception {
         //given
-        Long bookingId = 1L;
-        //when
         when(bookingService.getBooking(anyLong(), anyLong())).thenThrow(EntityNotFoundException.class);
         //then
         mvc.perform(get("/bookings/{bookingId}", bookingId)
@@ -145,10 +101,8 @@ public class TestBookingController {
     @Test
     void getBooking_success() throws Exception {
         //given
-        Long bookingId = 1L;
-        //when
-        when(bookingService.getBooking(anyLong(), anyLong()))
-                .thenReturn(bookingFullDto);
+        BookingFullDto bookingFullDto = createBookingFullDto();
+        when(bookingService.getBooking(anyLong(), anyLong())).thenReturn(bookingFullDto);
         //then
         mvc.perform(get("/bookings/{bookingId}", bookingId)
                         .header(headerXSharerUserId, 1)
@@ -167,10 +121,8 @@ public class TestBookingController {
     @Test
     void getBookingWithOwner_success() throws Exception {
         //given
-        Long bookingId = 1L;
-        //when
-        when(bookingService.getOwnerBookings(anyLong(), anyInt(), anyInt()))
-                .thenReturn(List.of(bookingFullDto));
+        BookingFullDto bookingFullDto = createBookingFullDto();
+        when(bookingService.getOwnerBookings(anyLong(), anyInt(), anyInt())).thenReturn(List.of(bookingFullDto));
         //then
         mvc.perform(get("/bookings/owner")
                         .header(headerXSharerUserId, 1)
@@ -192,8 +144,7 @@ public class TestBookingController {
     @Test
     void getBookingWithOwnerWithState_success() throws Exception {
         //given
-        Long bookingId = 1L;
-        //when
+        BookingFullDto bookingFullDto = createBookingFullDto();
         when(bookingService.getOwnerBookingsWithState(anyLong(), any(State.class), anyInt(), anyInt()))
                 .thenReturn(List.of(bookingFullDto));
         //then
@@ -218,10 +169,8 @@ public class TestBookingController {
     @Test
     void getUserBookings_success() throws Exception {
         //given
-        Long bookingId = 1L;
-        //when
-        when(bookingService.getUserBookings(anyLong(), anyInt(), anyInt()))
-                .thenReturn(List.of(bookingFullDto));
+        BookingFullDto bookingFullDto = createBookingFullDto();
+        when(bookingService.getUserBookings(anyLong(), anyInt(), anyInt())).thenReturn(List.of(bookingFullDto));
         //then
         mvc.perform(get("/bookings")
                         .header(headerXSharerUserId, 1)
@@ -243,8 +192,7 @@ public class TestBookingController {
     @Test
     void getUserBookingsWithState_success() throws Exception {
         //given
-        Long bookingId = 1L;
-        //when
+        BookingFullDto bookingFullDto = createBookingFullDto();
         when(bookingService.getUserBookingsWithState(anyLong(), any(State.class), anyInt(), anyInt()))
                 .thenReturn(List.of(bookingFullDto));
         //then
@@ -269,11 +217,10 @@ public class TestBookingController {
     @Test
     void updateBooking_success() throws Exception {
         //given
-        Long bookingId = 1L;
+        BookingFullDto bookingFullDto = createBookingFullDto();
+        when(bookingService.updateBooking(anyLong(), anyLong(), anyBoolean())).thenReturn(bookingFullDto);
         //when
         bookingFullDto.setStatus(Status.APPROVED);
-        when(bookingService.updateBooking(anyLong(), anyLong(), anyBoolean()))
-                .thenReturn(bookingFullDto);
         //then
         mvc.perform(patch("/bookings/{bookingId}", bookingId)
                         .header(headerXSharerUserId, 1)
@@ -293,8 +240,6 @@ public class TestBookingController {
     @Test
     void updateBooking_failure_wrongStatus() throws Exception {
         //given
-        Long bookingId = 1L;
-        //when
         when(bookingService.updateBooking(anyLong(), anyLong(), anyBoolean())).thenThrow(UnsupportedStatusException.class);
         //then
         mvc.perform(patch("/bookings/{bookingId}", bookingId)
@@ -309,8 +254,6 @@ public class TestBookingController {
     @Test
     void updateBooking_failure_wrongUser() throws Exception {
         //given
-        Long bookingId = 1L;
-        //when
         when(bookingService.updateBooking(anyLong(), anyLong(), anyBoolean())).thenThrow(UserMissMatchException.class);
         //then
         mvc.perform(patch("/bookings/{bookingId}", bookingId)
@@ -324,8 +267,6 @@ public class TestBookingController {
 
     @Test
     void deleteBooking_success() throws Exception {
-        //given
-        Long bookingId = 1L;
         //then
         mvc.perform(delete("/bookings/{bookingId}", bookingId)
                         .header(headerXSharerUserId, 1)
@@ -337,8 +278,6 @@ public class TestBookingController {
 
     @Test
     void cancelBooking_success() throws Exception {
-        //given
-        Long bookingId = 1L;
         //then
         mvc.perform(put("/bookings/cancel/{bookingId}", bookingId)
                         .header(headerXSharerUserId, 1)
@@ -346,5 +285,42 @@ public class TestBookingController {
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
+    }
+
+    private BookingDto createBookingDto() {
+        return BookingDto.builder()
+                .start(start)
+                .end(end)
+                .itemId(1L)
+                .bookerId(1L)
+                .build();
+    }
+
+    private BookingFullDto createBookingFullDto() {
+        return BookingFullDto.builder()
+                .id(1L)
+                .start(start)
+                .end(end)
+                .item(createItemDto())
+                .booker(createUserDto())
+                .status(Status.WAITING)
+                .build();
+    }
+
+    private UserDto createUserDto() {
+        return UserDto.builder()
+                .id(1L)
+                .name("Ken")
+                .email("eken@mail.ts")
+                .build();
+    }
+
+    private ItemDto createItemDto() {
+        return ItemDto.builder()
+                .id(1L)
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .build();
     }
 }

@@ -23,22 +23,12 @@ public class TestUserServiceImp {
     private UserService userService;
     private UserDto userDto;
     private User user;
-    private Long userId = 1L;
-    private String userName = "Ken";
-    private String userEmail = "eken@mail.ts";
 
     @BeforeEach
     private void init() {
-        userDto = UserDto.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
-        user = User.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
+        userDto = createUserDto();
+        user = createUser("Ken", "eken@mail.ts");
+        user.setId(1L);
         userService = new UserServiceImp(userRepository);
     }
 
@@ -47,7 +37,7 @@ public class TestUserServiceImp {
         //given
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         //when
-        UserDto returnedUserDto = userService.getUser(userId);
+        UserDto returnedUserDto = userService.getUser(user.getId());
         //then
         assertThat(returnedUserDto)
                 .isNotNull()
@@ -76,7 +66,7 @@ public class TestUserServiceImp {
                 .hasSize(1);
         assertThat(users.get(0).getName())
                 .isNotNull()
-                .isEqualTo(userName);
+                .isEqualTo(user.getName());
     }
 
     @Test
@@ -114,7 +104,7 @@ public class TestUserServiceImp {
         userDto.setName(changedUserName);
         user.setName(changedUserName);
         when(userRepository.save(any(User.class))).thenReturn(user);
-        UserDto changedUserDto = userService.updateUser(userId, userDto);
+        UserDto changedUserDto = userService.updateUser(user.getId(), userDto);
         //then
         assertThat(changedUserDto)
                 .isNotNull()
@@ -137,7 +127,7 @@ public class TestUserServiceImp {
         doNothing().when(userRepository).delete(any(User.class));
         when(userRepository.findAll()).thenReturn(List.of());
         //when
-        userService.deleteUser(userId);
+        userService.deleteUser(user.getId());
         List<UserDto> users = userService.getUsers();
         //then
         assertThat(users)
@@ -151,6 +141,21 @@ public class TestUserServiceImp {
         //when
         Long wrongId = -999L;
         //then
-        assertThrows(EntityNotFoundException.class, () -> userService.deleteUser(userId));
+        assertThrows(EntityNotFoundException.class, () -> userService.deleteUser(user.getId()));
+    }
+
+    private UserDto createUserDto() {
+        return UserDto.builder()
+                .id(1L)
+                .name("Ken")
+                .email("eken@mail.ts")
+                .build();
+    }
+
+    private User createUser(String userName, String userEmail) {
+        return User.builder()
+                .name(userName)
+                .email(userEmail)
+                .build();
     }
 }

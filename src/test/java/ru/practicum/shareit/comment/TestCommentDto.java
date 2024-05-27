@@ -14,20 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @JsonTest
 public class TestCommentDto {
-    private Long id = 1L;
-    private String text = "user comment";
-    private String authorName = "Author Name";
-    private LocalDateTime created = LocalDateTime.of(2024, 1, 1, 1, 1, 1);
-    private CommentDto commentDto = CommentDto.builder()
-            .id(id)
-            .text(text)
-            .build();
-    private CommentDtoFull commentDtoFull = CommentDtoFull.builder()
-            .id(id)
-            .text(text)
-            .authorName(authorName)
-            .created(created)
-            .build();
+    private CommentDto commentDto = createCommentDto();
+    private CommentDtoFull commentDtoFull = createCommentDtoFull();
 
     @Autowired
     private JacksonTester<CommentDto> commentDtoJacksonTester;
@@ -64,5 +52,21 @@ public class TestCommentDto {
         assertThat(content)
                 .extractingJsonPathStringValue("$.created")
                 .isEqualTo(commentDtoFull.getCreated().toString());
+    }
+
+    private CommentDto createCommentDto() {
+        return CommentDto.builder()
+                .id(1L)
+                .text("user comment")
+                .build();
+    }
+
+    private CommentDtoFull createCommentDtoFull() {
+        return CommentDtoFull.builder()
+                .id(1L)
+                .text("user comment")
+                .authorName("Author Name")
+                .created(LocalDateTime.of(2024, 1, 1, 1, 1, 1))
+                .build();
     }
 }

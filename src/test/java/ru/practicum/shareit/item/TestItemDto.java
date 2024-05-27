@@ -18,41 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @JsonTest
 public class TestItemDto {
-    private Long itemId = 1L;
-    private Long userId = 1L;
-    private String itemName = "thing";
-    private String itemDescription = "very thing";
-    private String text = "user comment";
-    private String authorName = "Author Name";
-    private LocalDateTime created = LocalDateTime.of(2024, 1, 1, 1, 1, 1);
-    private ItemDto itemDto = ItemDto.builder()
-            .id(itemId)
-            .name(itemName)
-            .description(itemDescription)
-            .available(Boolean.TRUE)
-            .requestId(1L)
-            .build();
-    private BookingMinDto bookingMinDto = BookingMinDto.builder()
-            .id(1L)
-            .bookerId(userId)
-            .build();
-    private CommentDtoFull commentDtoFull = CommentDtoFull.builder()
-            .id(1L)
-            .text(text)
-            .authorName(authorName)
-            .created(created)
-            .build();
-    private ItemWithBookingsDto itemWithBookingsDto = ItemWithBookingsDto.builder()
-            .id(itemId)
-            .name(itemName)
-            .description(itemDescription)
-            .available(Boolean.TRUE)
-            .requestId(1L)
-            .lastBooking(bookingMinDto)
-            .nextBooking(bookingMinDto)
-            .comments(List.of(commentDtoFull))
-            .build();
-
     @Autowired
     private JacksonTester<ItemDto> itemDtoJacksonTester;
     @Autowired
@@ -60,6 +25,9 @@ public class TestItemDto {
 
     @Test
     void itemDtoJacksonTester_success() throws IOException {
+        //given
+        ItemDto itemDto = createItemDto();
+        itemDto.setRequestId(1L);
         //when
         JsonContent<ItemDto> content = itemDtoJacksonTester.write(itemDto);
         //then
@@ -83,6 +51,16 @@ public class TestItemDto {
     @Test
     void itemWithBookingsDtoJacksonTester_success() throws IOException {
         //when
+        ItemWithBookingsDto itemWithBookingsDto = ItemWithBookingsDto.builder()
+            .id(1L)
+            .name("thing")
+            .description("very thing")
+            .available(Boolean.TRUE)
+            .requestId(1L)
+            .lastBooking(createBookingMinDto())
+            .nextBooking(createBookingMinDto())
+            .comments(List.of(createCommentDtoFull()))
+            .build();
         JsonContent<ItemWithBookingsDto> content = itemWithBookingsDtoJacksonTester.write(itemWithBookingsDto);
         //then
         assertThat(content)
@@ -133,5 +111,30 @@ public class TestItemDto {
         assertThat(content)
                 .extractingJsonPathStringValue("$.comments[0].created")
                 .isEqualTo(itemWithBookingsDto.getComments().get(0).getCreated().toString());
+    }
+
+    private ItemDto createItemDto() {
+        return ItemDto.builder()
+                .id(1L)
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .build();
+    }
+
+    private BookingMinDto createBookingMinDto() {
+        return BookingMinDto.builder()
+            .id(1L)
+            .bookerId(1L)
+            .build();
+    }
+
+    private CommentDtoFull createCommentDtoFull() {
+        return CommentDtoFull.builder()
+                .id(1L)
+                .text("it's good")
+                .authorName("Ken")
+                .created(LocalDateTime.of(2024, 1, 1, 1, 1, 1))
+                .build();
     }
 }

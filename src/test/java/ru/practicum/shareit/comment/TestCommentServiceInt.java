@@ -26,7 +26,6 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.UserService;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.dto.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,87 +49,33 @@ public class TestCommentServiceInt {
     private final CommentService commentService;
     private final ItemService itemService;
     private final BookingService bookingService;
-    private Comment comment;
     private CommentDto commentDto;
     private User user;
-    private User owner;
-    private UserDto userDto;
-    private UserDto ownerDto;
-    private ItemDto itemDto;
     private BookingDto bookingDto;
-    private Long ownerId = 2L;
-    private Long userId = 1L;
-    private Long itemId = 1L;
     private Item item;
-    private String text = "it's good";
-    private Long commentId = 1L;
-    private String ownerName = "Peter";
-    private String ownerEmail = "iown@mail.ts";
-    private String userName = "Ken";
-    private String userEmail = "eken@mail.ts";
-    private String itemName = "thing";
-    private String itemDescription = "very thing";
 
     @BeforeEach
     private void init() {
         LocalDateTime start = LocalDateTime.of(2025, 1, 1, 1, 1, 1);
         LocalDateTime end = LocalDateTime.of(2025, 1, 1, 2, 1, 1);
-        item = Item.builder()
-                .id(1L)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .owner(ownerId)
-                .build();
-        user = User.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
-        comment = Comment.builder()
-                .id(commentId)
-                .item(item)
-                .text(text)
-                .author(user)
-                .created(LocalDateTime.of(2024, 1, 1, 3, 1, 1))
-                .build();
+        item = createItem();
+        item.setId(1L);
+        user = createUser("Ken", "eken@mail.ts");
+        user.setId(1L);
         commentDto = CommentDto.builder()
-                .id(commentId)
-                .text(text)
+                .id(1L)
+                .text("it's good")
                 .build();
-        userDto = UserDto.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
-        owner = User.builder()
-                .id(ownerId)
-                .name(ownerName)
-                .email(ownerEmail)
-                .build();
-        itemDto = ItemDto.builder()
-                .id(itemId)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .build();
-        bookingDto = BookingDto.builder()
-                .start(start)
-                .end(end)
-                .itemId(1L)
-                .bookerId(1L)
-                .build();
-        ownerDto = UserMapper.toUserDto(owner);
-        userService.addUser(userDto);
-        userService.addUser(ownerDto);
-        itemService.addItem(ownerId, itemDto);
-        bookingService.addBooking(bookingDto, userId);
+        bookingDto = createBookingDto();
+        userService.addUser(createUserDto());
+        userService.addUser(UserDto.builder().id(2L).name("Peter").email("iown@mail.ts").build());
+        itemService.addItem(2L, createItemDto());
+        bookingService.addBooking(bookingDto, user.getId());
     }
 
     @Test
     void addItemComment_success() {
         //given
-        Long bookingId = 1L;
         LocalDateTime startInPast = LocalDateTime.of(2024, 1, 1, 1, 1, 1);
         LocalDateTime endInPast = LocalDateTime.of(2024, 1, 1, 2, 1, 1);
         Booking bookingInPast = Booking.builder()
@@ -141,8 +86,10 @@ public class TestCommentServiceInt {
                                                         .status(Status.APPROVED)
                                                                 .build();
         entityManager.persist(bookingInPast);
+        String userName = "Ken";
+        Long commentId = 1L;
         //when
-        CommentDtoFull addedCommentDtoFull = commentService.addItemComment(userId, commentDto, itemId);
+        CommentDtoFull addedCommentDtoFull = commentService.addItemComment(user.getId(), commentDto, item.getId());
         Comment comment = entityManager.createQuery("SELECT c FROM Comment c where c.id = :id", Comment.class)
                 .setParameter("id", commentId)
                 .getSingleResult();
@@ -152,5 +99,47 @@ public class TestCommentServiceInt {
                 .isNotNull()
                 .isInstanceOf(CommentDtoFull.class)
                 .isEqualTo(queryCommentDtoFull);
+    }
+
+    private Item createItem() {
+        return Item.builder()
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .owner(2L)
+                .build();
+    }
+
+    private User createUser(String userName, String userEmail) {
+        return User.builder()
+                .name(userName)
+                .email(userEmail)
+                .build();
+    }
+
+    private UserDto createUserDto() {
+        return UserDto.builder()
+                .id(1L)
+                .name("Ken")
+                .email("eken@mail.ts")
+                .build();
+    }
+
+    private BookingDto createBookingDto() {
+        return BookingDto.builder()
+                .start(LocalDateTime.of(2025, 1, 1, 1, 1, 1))
+                .end(LocalDateTime.of(2025, 1, 1, 2, 1, 1))
+                .itemId(1L)
+                .bookerId(1L)
+                .build();
+    }
+
+    private ItemDto createItemDto() {
+        return ItemDto.builder()
+                .id(1L)
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .build();
     }
 }

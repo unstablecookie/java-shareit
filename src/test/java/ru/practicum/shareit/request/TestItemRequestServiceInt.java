@@ -13,15 +13,12 @@ import org.springframework.test.annotation.DirtiesContext;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.ItemService;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.dto.ItemRequestMapper;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.UserService;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.dto.UserMapper;
-import ru.practicum.shareit.user.model.User;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,55 +39,16 @@ public class TestItemRequestServiceInt {
     private final UserService userService;
     private final ItemRequestService itemRequestService;
     private final ItemService itemService;
-    private User owner;
-    private User user;
-    private Item item;
-    private ItemDto itemDto;
-    private UserDto ownerDto;
     private UserDto userDto;
     private ItemRequestDto itemRequestDto;
     private Long userId = 1L;
-    private Long ownerId = 2L;
-    private Long itemId = 1L;
-    private String userName = "Ken";
-    private String userEmail = "eken@mail.ts";
-    private String ownerName = "Peter";
-    private String ownerEmail = "iown@mail.ts";
-    private String itemName = "thing";
-    private String itemDescription = "very thing";
     private int defaultFrom = 0;
     private int defaultSize = 10;
 
     @BeforeEach
     private void init() {
-        item = Item.builder()
-                .id(1L)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .owner(ownerId)
-                .build();
-        user = User.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
-        owner = User.builder()
-                .id(ownerId)
-                .name(ownerName)
-                .email(ownerEmail)
-                .build();
-        itemDto = ItemDto.builder()
-                .id(itemId)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .build();
-        itemRequestDto = ItemRequestDto.builder()
-                .description("i want some thing")
-                .build();
-        userDto = UserMapper.toUserDto(user);
-        ownerDto = UserMapper.toUserDto(owner);
+        itemRequestDto = createItemRequestDto();
+        userDto = createUserDto();
         userService.addUser(userDto);
     }
 
@@ -162,12 +120,14 @@ public class TestItemRequestServiceInt {
     @Test
     void getUserItemRequests_success() {
         //given
+        UserDto ownerDto = UserDto.builder().id(2L).name("Peter").email("iown@mail.ts").build();
         Long itemRequestId = 1L;
+        ItemDto itemDto = ItemDto.builder().id(1L).name("thing").description("very thing").available(Boolean.TRUE).build();
         userService.addUser(ownerDto);
         itemRequestService.addItemRequest(userId, itemRequestDto);
         itemDto.setRequestId(itemRequestId);
         //when
-        itemService.addItem(ownerId, itemDto);
+        itemService.addItem(ownerDto.getId(), itemDto);
         List<ItemRequestDto> requests = itemRequestService.getUserItemRequests(userId);
         List<ItemRequest> queryUserItemRequests =
                 entityManager.createQuery("select ir from ItemRequest as ir where ir.requestor.id = :id order by ir.id",
@@ -198,7 +158,18 @@ public class TestItemRequestServiceInt {
                 .isNotNull()
                 .hasSize(queryItemRequests.size());
     }
-    //given
-    //when
-    //then
+
+    private UserDto createUserDto() {
+        return UserDto.builder()
+                .id(1L)
+                .name("Ken")
+                .email("eken@mail.ts")
+                .build();
+    }
+
+    private ItemRequestDto createItemRequestDto() {
+        return ItemRequestDto.builder()
+                .description("i want some thing")
+                .build();
+    }
 }

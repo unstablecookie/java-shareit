@@ -15,34 +15,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @JsonTest
 public class TestItemRequestDto {
-    private Long itemId = 1L;
-    private Long itemRequestId = 1L;
-    private String itemRequestName = "thing name";
-    private String itemRequestDescription = "very thing";
-    private String itemName = "thing";
-    private String itemDescription = "very thing";
-    LocalDateTime created = LocalDateTime.of(2025, 1, 1, 1, 1, 1);
-    private ItemDto itemDto = ItemDto.builder()
-            .id(itemId)
-            .name(itemName)
-            .description(itemDescription)
-            .available(Boolean.TRUE)
-            .requestId(1L)
-            .build();
-    private ItemRequestDto itemRequestDto = ItemRequestDto.builder()
-            .id(itemRequestId)
-            .name(itemRequestName)
-            .description(itemRequestDescription)
-            .available(Boolean.TRUE)
-            .created(created)
-            .items(List.of(itemDto))
-            .build();
-
     @Autowired
     private JacksonTester<ItemRequestDto> itemRequestDtoJacksonTester;
 
     @Test
     void itemRequestDtoJacksonTester_success() throws IOException {
+        //given
+        ItemRequestDto itemRequestDto = createItemRequestDto();
         //when
         JsonContent<ItemRequestDto> content = itemRequestDtoJacksonTester.write(itemRequestDto);
         //then
@@ -79,5 +58,26 @@ public class TestItemRequestDto {
         assertThat(content)
                 .extractingJsonPathNumberValue("$.items[0].requestId")
                 .isEqualTo(itemRequestDto.getItems().get(0).getRequestId().intValue());
+    }
+
+    private ItemRequestDto createItemRequestDto() {
+        return ItemRequestDto.builder()
+            .id(1L)
+            .name("thing name")
+            .description("very thing")
+            .available(Boolean.TRUE)
+            .created(LocalDateTime.of(2025, 1, 1, 1, 1, 1))
+            .items(List.of(createItemDto()))
+            .build();
+    }
+
+    private ItemDto createItemDto() {
+        return ItemDto.builder()
+                .id(1L)
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .requestId(1L)
+                .build();
     }
 }

@@ -9,10 +9,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.PageImpl;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.dto.BookingDto;
-import ru.practicum.shareit.booking.dto.BookingFullDto;
 import ru.practicum.shareit.booking.dto.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.booking.model.Status;
 import ru.practicum.shareit.comment.CommentRepository;
 import ru.practicum.shareit.comment.dto.CommentMapper;
 import ru.practicum.shareit.comment.model.Comment;
@@ -23,7 +21,6 @@ import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.ItemRequestRepository;
 import ru.practicum.shareit.user.UserRepository;
-import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -46,86 +43,26 @@ public class TestItemServiceImp {
     @Mock
     private ItemRequestRepository itemRequestRepository;
     private ItemService itemService;
-    private BookingDto bookingDto;
-    private BookingFullDto bookingFullDto;
     private ItemDto itemDto;
-    private UserDto userDto;
     private User user;
     private User owner;
     private Item item;
-    private Comment comment;
-    private Booking firstBooking;
-    private Long userId = 1L;
-    private Long itemId = 1L;
-    private Long ownerId = 2L;
-    private String userName = "Ken";
-    private String userEmail = "eken@mail.ts";
-    private String ownerName = "Peter";
-    private String ownerEmail = "iown@mail.ts";
-    private String itemName = "thing";
-    private String itemDescription = "very thing";
+    private Booking booking;
     private int defaultFrom = 0;
     private int defaultSize = 10;
-    private String text = "it's good";
-    private Long commentId = 1L;
-
 
     @BeforeEach
     private void init() {
-        LocalDateTime start = LocalDateTime.of(2025, 1, 1, 1, 1, 1);
-        LocalDateTime end = LocalDateTime.of(2025, 1, 1, 2, 1, 1);
-        itemDto = ItemDto.builder()
-                .id(itemId)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .build();
-        userDto = UserDto.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
-        itemService = new ItemServiceImp(itemRepository, userRepository, bookingRepository, commentRepository,
-                itemRequestRepository);
-        bookingDto = BookingDto.builder()
-                .start(start)
-                .end(end)
-                .itemId(1L)
-                .bookerId(1L)
-                .build();
-        bookingFullDto = BookingFullDto.builder()
-                .id(1L)
-                .start(start)
-                .end(end)
-                .item(itemDto)
-                .booker(userDto)
-                .status(Status.WAITING)
-                .build();
-        user = User.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
-        owner = User.builder()
-                .id(ownerId)
-                .name(ownerName)
-                .email(ownerEmail)
-                .build();
-        item = Item.builder()
-                .id(itemId)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .owner(ownerId)
-                .build();
-        comment = Comment.builder()
-                .id(commentId)
-                .item(item)
-                .text(text)
-                .author(user)
-                .created(LocalDateTime.of(2024, 1, 1, 3, 1, 1))
-                .build();
-        firstBooking = BookingMapper.toBooking(bookingDto, item, user);
+        itemService = new ItemServiceImp(itemRepository, userRepository, bookingRepository, commentRepository, itemRequestRepository);
+        itemDto = createItemDto();
+        item = createItem();
+        item.setId(1L);
+        user = createUser("Ken", "eken@mail.ts");
+        user.setId(1L);
+        owner = createUser("Peter", "iown@mail.ts");
+        owner.setId(2L);
+        booking = BookingMapper.toBooking(createBookingDto(), item, user);
+        booking.setId(1L);
     }
 
     @Test
@@ -134,7 +71,7 @@ public class TestItemServiceImp {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(owner));
         when(itemRepository.save(any(Item.class))).thenReturn(item);
         //when
-        ItemDto addedItemDto = itemService.addItem(ownerId, itemDto);
+        ItemDto addedItemDto = itemService.addItem(owner.getId(), itemDto);
         //then
         assertThat(addedItemDto)
                 .isNotNull()
@@ -158,7 +95,7 @@ public class TestItemServiceImp {
         when(itemRepository.save(any(Item.class))).thenReturn(item);
         //when
         itemDto.setAvailable(Boolean.FALSE);
-        ItemDto updatedItemDto = itemService.updateItem(ownerId, itemDto, itemId);
+        ItemDto updatedItemDto = itemService.updateItem(owner.getId(), itemDto, item.getId());
         //then
         assertThat(updatedItemDto)
                 .isNotNull()
@@ -173,19 +110,19 @@ public class TestItemServiceImp {
         //when
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         //then
-        assertThrows(EntityNotFoundException.class, () -> itemService.updateItem(userId, itemDto, itemId));
+        assertThrows(EntityNotFoundException.class, () -> itemService.updateItem(user.getId(), itemDto, item.getId()));
     }
 
     @Test
     void getItem_success_byOwner() {
         //given
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
-        when(bookingRepository.findByItemIdOrderByStartDesc(anyLong())).thenReturn(List.of(firstBooking));
+        when(bookingRepository.findByItemIdOrderByStartDesc(anyLong())).thenReturn(List.of(booking));
         //when
         ItemWithBookingsDto itemWithBookingsDto = ItemMapper.toItemWithBookingsDto(item);
-        itemWithBookingsDto.setNextBooking(BookingMapper.toMinBookingDto(firstBooking));
+        itemWithBookingsDto.setNextBooking(BookingMapper.toMinBookingDto(booking));
         itemWithBookingsDto.setComments(List.of());
-        ItemWithBookingsDto ownersItemWithBookingsDto = itemService.getItem(ownerId, itemId);
+        ItemWithBookingsDto ownersItemWithBookingsDto = itemService.getItem(owner.getId(), item.getId());
         //then
         assertThat(ownersItemWithBookingsDto)
                 .isNotNull()
@@ -196,12 +133,19 @@ public class TestItemServiceImp {
     @Test
     void getItem_success_byUser() {
         //given
+        Comment comment = Comment.builder()
+                .id(1L)
+                .item(item)
+                .text("user comment")
+                .author(user)
+                .created(LocalDateTime.of(2024, 1, 1, 3, 1, 1))
+                .build();
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
         when(commentRepository.findByItemId(anyLong())).thenReturn(List.of(comment));
         //when
         ItemWithBookingsDto itemWithBookingsDto = ItemMapper.toItemWithBookingsDto(item);
-        itemWithBookingsDto.setComments(List.of(CommentMapper.toCommentDtoFull(comment, userName)));
-        ItemWithBookingsDto usersItemWithBookingsDto = itemService.getItem(userId, itemId);
+        itemWithBookingsDto.setComments(List.of(CommentMapper.toCommentDtoFull(comment, user.getName())));
+        ItemWithBookingsDto usersItemWithBookingsDto = itemService.getItem(user.getId(), item.getId());
         //then
         assertThat(usersItemWithBookingsDto)
                 .isNotNull()
@@ -214,9 +158,9 @@ public class TestItemServiceImp {
         //given
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(owner));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
-        when(itemRepository.findByOwnerOrderById(ownerId, page)).thenReturn(new PageImpl<>(List.of(item)));
+        when(itemRepository.findByOwnerOrderById(owner.getId(), page)).thenReturn(new PageImpl<>(List.of(item)));
         //when
-        List<ItemWithBookingsDto> items = itemService.getUserItems(ownerId, defaultFrom, defaultSize);
+        List<ItemWithBookingsDto> items = itemService.getUserItems(owner.getId(), defaultFrom, defaultSize);
         //then
         assertThat(items)
                 .isNotNull()
@@ -224,7 +168,7 @@ public class TestItemServiceImp {
                 .hasSize(1);
         assertThat(items.get(0).getName())
                 .isNotNull()
-                .isEqualTo(itemName);
+                .isEqualTo(item.getName());
     }
 
     @Test
@@ -232,9 +176,9 @@ public class TestItemServiceImp {
         //given
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
-        when(itemRepository.findByOwnerOrderById(userId, page)).thenReturn(new PageImpl<>(List.of()));
+        when(itemRepository.findByOwnerOrderById(user.getId(), page)).thenReturn(new PageImpl<>(List.of()));
         //when
-        List<ItemWithBookingsDto> items = itemService.getUserItems(userId, defaultFrom, defaultSize);
+        List<ItemWithBookingsDto> items = itemService.getUserItems(user.getId(), defaultFrom, defaultSize);
         //then
         assertThat(items)
                 .isNotNull()
@@ -257,7 +201,7 @@ public class TestItemServiceImp {
                 .hasSize(1);
         assertThat(items.get(0).getName())
                 .isNotNull()
-                .isEqualTo(itemName);
+                .isEqualTo(item.getName());
     }
 
     @Test
@@ -282,7 +226,7 @@ public class TestItemServiceImp {
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
         doNothing().when(itemRepository).delete(any());
         //then
-        itemService.deleteItem(itemId);
+        itemService.deleteItem(item.getId());
     }
 
     @Test
@@ -292,5 +236,39 @@ public class TestItemServiceImp {
         when(itemRepository.findById(anyLong())).thenReturn(Optional.empty());
         //then
         assertThrows(EntityNotFoundException.class, () -> itemService.deleteItem(anyLong()));
+    }
+
+    private User createUser(String userName, String userEmail) {
+        return User.builder()
+                .name(userName)
+                .email(userEmail)
+                .build();
+    }
+
+    private Item createItem() {
+        return Item.builder()
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .owner(2L)
+                .build();
+    }
+
+    private ItemDto createItemDto() {
+        return ItemDto.builder()
+                .id(1L)
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .build();
+    }
+
+    private BookingDto createBookingDto() {
+        return BookingDto.builder()
+                .start(LocalDateTime.of(2025, 1, 1, 1, 1, 1))
+                .end(LocalDateTime.of(2025, 1, 1, 2, 1, 1))
+                .itemId(1L)
+                .bookerId(1L)
+                .build();
     }
 }

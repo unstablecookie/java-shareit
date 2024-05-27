@@ -42,86 +42,34 @@ public class TestBookingServiceImp {
     @Mock
     private BookingRepository bookingRepository;
     private BookingService bookingService;
-    private BookingDto bookingDto;
-    private BookingFullDto bookingFullDto;
-    private ItemDto itemDto;
-    private UserDto userDto;
     private User user;
-    private User owner;
     private Item item;
-    private Booking firstBooking;
-    private Long userId = 1L;
-    private Long itemId = 1L;
-    private Long ownerId = 2L;
-    private String ownerName = "Peter";
-    private String ownerEmail = "iown@mail.ts";
-    private String userName = "Ken";
-    private String userEmail = "eken@mail.ts";
-    private String itemName = "thing";
-    private String itemDescription = "very thing";
+    private BookingDto bookingDto;
+    private Booking booking;
     private int defaultFrom = 0;
     private int defaultSize = 10;
 
     @BeforeEach
     private void init() {
-        LocalDateTime start = LocalDateTime.of(2025, 1, 1, 1, 1, 1);
-        LocalDateTime end = LocalDateTime.of(2025, 1, 1, 2, 1, 1);
-        itemDto = ItemDto.builder()
-                .id(itemId)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .build();
-        userDto = UserDto.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
         bookingService = new BookingServiceImp(itemRepository, userRepository, bookingRepository);
-        bookingDto = BookingDto.builder()
-                .start(start)
-                .end(end)
-                .itemId(1L)
-                .bookerId(1L)
-                .build();
-        bookingFullDto = BookingFullDto.builder()
-                .id(1L)
-                .start(start)
-                .end(end)
-                .item(itemDto)
-                .booker(userDto)
-                .status(Status.WAITING)
-                .build();
-        user = User.builder()
-                .id(userId)
-                .name(userName)
-                .email(userEmail)
-                .build();
-        owner = User.builder()
-                .id(ownerId)
-                .name(ownerName)
-                .email(ownerEmail)
-                .build();
-        item = Item.builder()
-                .id(itemId)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .owner(ownerId)
-                .build();
-        firstBooking = BookingMapper.toBooking(bookingDto, item, user);
+        user = createUser("Ken", "eken@mail.ts");
+        user.setId(1L);
+        item = createItem();
+        bookingDto = createBookingDto();
+        booking = BookingMapper.toBooking(bookingDto, item, user);
+        booking.setId(1L);
     }
 
     @Test
     void addBooking_success() {
         //given
+        BookingFullDto bookingFullDto = createBookingFullDto();
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
         when(bookingRepository.findByItemIdOrderByStartDesc(anyLong())).thenReturn(new ArrayList<>());
-        when(bookingRepository.save(any(Booking.class))).thenReturn(firstBooking);
-        firstBooking.setId(1L);
+        when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
         //when
-        BookingFullDto bookingFullDtoResponce = bookingService.addBooking(bookingDto, userId);
+        BookingFullDto bookingFullDtoResponce = bookingService.addBooking(bookingDto, user.getId());
         //then
         assertThat(bookingFullDto)
                 .isNotNull()
@@ -145,7 +93,7 @@ public class TestBookingServiceImp {
         bookingDto.setStart(startAfterEnd);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         //then
-        assertThrows(ResponseStatusException.class, () -> bookingService.addBooking(bookingDto, userId));
+        assertThrows(ResponseStatusException.class, () -> bookingService.addBooking(bookingDto, user.getId()));
     }
 
     @Test
@@ -157,17 +105,19 @@ public class TestBookingServiceImp {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         when(itemRepository.findById(anyLong())).thenThrow(EntityNotFoundException.class);
         //then
-        assertThrows(EntityNotFoundException.class, () -> bookingService.addBooking(bookingDto, userId));
+        assertThrows(EntityNotFoundException.class, () -> bookingService.addBooking(bookingDto, user.getId()));
     }
 
     @Test
     void addBooking_failure_ownerIsRequestor() {
+        //given
+        Long ownerId = 2L;
         //when
         bookingDto.setBookerId(ownerId);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
         //then
-        assertThrows(EntityNotFoundException.class, () -> bookingService.addBooking(bookingDto, ownerId));
+        assertThrows(UserMissMatchException.class, () -> bookingService.addBooking(bookingDto, ownerId));
     }
 
     @Test
@@ -179,7 +129,7 @@ public class TestBookingServiceImp {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
         //then
-        assertThrows(ResponseStatusException.class, () -> bookingService.addBooking(bookingDto, userId));
+        assertThrows(ResponseStatusException.class, () -> bookingService.addBooking(bookingDto, user.getId()));
     }
 
     @Test
@@ -207,7 +157,7 @@ public class TestBookingServiceImp {
         //when
         when(bookingRepository.findByItemIdOrderByStartDesc(anyLong())).thenReturn(List.of(intersetionBooking));
         //then
-        assertThrows(TimeOverlapException.class, () -> bookingService.addBooking(bookingDto, userId));
+        assertThrows(TimeOverlapException.class, () -> bookingService.addBooking(bookingDto, user.getId()));
     }
 
     @Test
@@ -216,19 +166,18 @@ public class TestBookingServiceImp {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
         //when
-        item.setOwner(userId);
+        item.setOwner(user.getId());
         //then
-        assertThrows(EntityNotFoundException.class, () -> bookingService.addBooking(bookingDto, userId));
+        assertThrows(UserMissMatchException.class, () -> bookingService.addBooking(bookingDto, user.getId()));
     }
 
     @Test
     void getBooking_success() {
         //given
-        Long bookingId = 1L;
-        firstBooking.setId(bookingId);
-        when(bookingRepository.findById(1L)).thenReturn(Optional.of(firstBooking));
+        BookingFullDto bookingFullDto = createBookingFullDto();
+        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
         //when
-        BookingFullDto returnedBookingFullDto = bookingService.getBooking(bookingId, userId);
+        BookingFullDto returnedBookingFullDto = bookingService.getBooking(booking.getId(), user.getId());
         //then
         assertThat(returnedBookingFullDto)
                 .isNotNull()
@@ -241,35 +190,34 @@ public class TestBookingServiceImp {
         //when
         Long wrongId = -999L;
         //then
-        assertThrows(EntityNotFoundException.class, () -> bookingService.getBooking(wrongId, userId));
+        assertThrows(EntityNotFoundException.class, () -> bookingService.getBooking(wrongId, user.getId()));
     }
 
     @Test
     void getBooking_failure_wrongUserId() {
-        //given
-        Long bookingId = 1L;
         //when
         Long wrongId = -999L;
         //then
-        assertThrows(EntityNotFoundException.class, () -> bookingService.getBooking(bookingId, wrongId));
+        assertThrows(EntityNotFoundException.class, () -> bookingService.getBooking(booking.getId(), wrongId));
     }
 
     @Test
     void getBooking_failure_requestorIsNotBooker() {
-        //given
-        Long bookingId = 1L;
         //when
         Long notBookerId = 3L;
         //then
-        assertThrows(EntityNotFoundException.class, () -> bookingService.getBooking(bookingId, notBookerId));
+        assertThrows(EntityNotFoundException.class, () -> bookingService.getBooking(booking.getId(), notBookerId));
     }
 
     @Test
     void getOwnerBookings_success() {
         //given
+        Long ownerId = 2L;
+        BookingDto bookingDto = createBookingDto();
+        Booking booking = BookingMapper.toBooking(bookingDto, item, user);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
-        when(bookingRepository.findAllOwnerBookingsOrderByStartDesc(ownerId, page)).thenReturn(new PageImpl<>(List.of(firstBooking)));
+        when(bookingRepository.findAllOwnerBookingsOrderByStartDesc(ownerId, page)).thenReturn(new PageImpl<>(List.of(booking)));
         //when
         List<BookingFullDto> ownerBookings = bookingService.getOwnerBookings(ownerId, defaultFrom, defaultSize);
         //then
@@ -291,9 +239,11 @@ public class TestBookingServiceImp {
     @Test
     void getOwnerBookingsWithState_success_WAITING() {
         //given
+        Long ownerId = 2L;
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
-        when(bookingRepository.findAllOwnerBookingsAndStatus(ownerId, Status.WAITING, page)).thenReturn(new PageImpl<>(List.of(firstBooking)));
+        when(bookingRepository.findAllOwnerBookingsAndStatus(ownerId, Status.WAITING, page))
+                .thenReturn(new PageImpl<>(List.of(booking)));
         //when
         List<BookingFullDto> ownerBookings = bookingService.getOwnerBookingsWithState(ownerId, State.WAITING,
                 defaultFrom, defaultSize);
@@ -309,9 +259,10 @@ public class TestBookingServiceImp {
     @Test
     void getOwnerBookingsWithState_success_ALL() {
         //given
+        Long ownerId = 2L;
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
-        when(bookingRepository.findAllOwnerBookings(ownerId, page)).thenReturn(new PageImpl<>(List.of(firstBooking)));
+        when(bookingRepository.findAllOwnerBookings(ownerId, page)).thenReturn(new PageImpl<>(List.of(booking)));
         //when
         List<BookingFullDto> ownerBookings = bookingService.getOwnerBookingsWithState(ownerId, State.ALL,
                 defaultFrom, defaultSize);
@@ -327,11 +278,12 @@ public class TestBookingServiceImp {
     @Test
     void getOwnerBookingsWithState_success_PAST() {
         //given
-        firstBooking.setStatus(Status.APPROVED);
+        Long ownerId = 2L;
+        booking.setStatus(Status.APPROVED);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
         when(bookingRepository.findByOwnerIdAndEndBefore(anyLong(), any(), any()))
-                .thenReturn(new PageImpl<>(List.of(firstBooking)));
+                .thenReturn(new PageImpl<>(List.of(booking)));
         //when
         List<BookingFullDto> ownerBookings = bookingService.getOwnerBookingsWithState(ownerId, State.PAST,
                 defaultFrom, defaultSize);
@@ -347,11 +299,12 @@ public class TestBookingServiceImp {
     @Test
     void getOwnerBookingsWithState_success_FUTURE() {
         //given
-        firstBooking.setStatus(Status.APPROVED);
+        Long ownerId = 2L;
+        booking.setStatus(Status.APPROVED);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
         when(bookingRepository.findByOwnerIdAndStartAfter(anyLong(), any(), any()))
-                .thenReturn(new PageImpl<>(List.of(firstBooking)));
+                .thenReturn(new PageImpl<>(List.of(booking)));
         //when
         List<BookingFullDto> ownerBookings = bookingService.getOwnerBookingsWithState(ownerId, State.FUTURE,
                 defaultFrom, defaultSize);
@@ -367,11 +320,12 @@ public class TestBookingServiceImp {
     @Test
     void getOwnerBookingsWithState_success_CURRENT() {
         //given
-        firstBooking.setStatus(Status.APPROVED);
+        Long ownerId = 2L;
+        booking.setStatus(Status.APPROVED);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
         when(bookingRepository.findByOwnerIdAndTimeCurrent(anyLong(), any(), any()))
-                .thenReturn(new PageImpl<>(List.of(firstBooking)));
+                .thenReturn(new PageImpl<>(List.of(booking)));
         //when
         List<BookingFullDto> ownerBookings = bookingService.getOwnerBookingsWithState(ownerId, State.CURRENT,
                 defaultFrom, defaultSize);
@@ -387,11 +341,13 @@ public class TestBookingServiceImp {
     @Test
     void getOwnerBookingsWithState_success_REJECTED() {
         //given
+        Long ownerId = 2L;
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
         //when
-        firstBooking.setStatus(Status.REJECTED);
-        when(bookingRepository.findAllOwnerBookingsOrderByStartDesc(ownerId, page)).thenReturn(new PageImpl<>(List.of(firstBooking)));
+        booking.setStatus(Status.REJECTED);
+        when(bookingRepository.findAllOwnerBookingsOrderByStartDesc(ownerId, page))
+                .thenReturn(new PageImpl<>(List.of(booking)));
         List<BookingFullDto> ownerBookings = bookingService.getOwnerBookings(ownerId, defaultFrom, defaultSize);
         //then
         assertThat(ownerBookings)
@@ -407,9 +363,9 @@ public class TestBookingServiceImp {
         //given
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
-        when(bookingRepository.findByUserIdOrderByStartDesc(userId, page)).thenReturn(new PageImpl<>(List.of(firstBooking)));
+        when(bookingRepository.findByUserIdOrderByStartDesc(user.getId(), page)).thenReturn(new PageImpl<>(List.of(booking)));
         //when
-        List<BookingFullDto> ownerBookings = bookingService.getUserBookings(userId, defaultFrom, defaultSize);
+        List<BookingFullDto> ownerBookings = bookingService.getUserBookings(user.getId(), defaultFrom, defaultSize);
         //then
         assertThat(ownerBookings)
                 .isNotNull()
@@ -431,9 +387,9 @@ public class TestBookingServiceImp {
         //given
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
-        when(bookingRepository.findAllOwnerBookingsOrderByStartDesc(userId, page)).thenReturn(new PageImpl<>(List.of(firstBooking)));
+        when(bookingRepository.findAllOwnerBookingsOrderByStartDesc(user.getId(), page)).thenReturn(new PageImpl<>(List.of(booking)));
         //when
-        List<BookingFullDto> ownerBookings = bookingService.getOwnerBookings(userId, defaultFrom, defaultSize);
+        List<BookingFullDto> ownerBookings = bookingService.getOwnerBookings(user.getId(), defaultFrom, defaultSize);
         //then
         assertThat(ownerBookings)
                 .isNotNull()
@@ -449,9 +405,9 @@ public class TestBookingServiceImp {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
         //when
-        firstBooking.setStatus(Status.REJECTED);
-        when(bookingRepository.findAllOwnerBookingsOrderByStartDesc(userId, page)).thenReturn(new PageImpl<>(List.of(firstBooking)));
-        List<BookingFullDto> ownerBookings = bookingService.getOwnerBookings(userId, defaultFrom, defaultSize);
+        booking.setStatus(Status.REJECTED);
+        when(bookingRepository.findAllOwnerBookingsOrderByStartDesc(user.getId(), page)).thenReturn(new PageImpl<>(List.of(booking)));
+        List<BookingFullDto> ownerBookings = bookingService.getOwnerBookings(user.getId(), defaultFrom, defaultSize);
         //then
         assertThat(ownerBookings)
                 .isNotNull()
@@ -466,9 +422,9 @@ public class TestBookingServiceImp {
         //given
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
-        when(bookingRepository.findByUserId(userId, page)).thenReturn(new PageImpl<>(List.of(firstBooking)));
+        when(bookingRepository.findByUserId(user.getId(), page)).thenReturn(new PageImpl<>(List.of(booking)));
         //when
-        List<BookingFullDto> ownerBookings = bookingService.getUserBookingsWithState(userId, State.ALL, defaultFrom,
+        List<BookingFullDto> ownerBookings = bookingService.getUserBookingsWithState(user.getId(), State.ALL, defaultFrom,
                 defaultSize);
         //then
         assertThat(ownerBookings)
@@ -485,9 +441,9 @@ public class TestBookingServiceImp {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
         when(bookingRepository.findByUserIdAndEndBefore(anyLong(), any(), any()))
-                .thenReturn(new PageImpl<>(List.of(firstBooking)));
+                .thenReturn(new PageImpl<>(List.of(booking)));
         //when
-        List<BookingFullDto> ownerBookings = bookingService.getUserBookingsWithState(userId, State.PAST, defaultFrom,
+        List<BookingFullDto> ownerBookings = bookingService.getUserBookingsWithState(user.getId(), State.PAST, defaultFrom,
                 defaultSize);
         //then
         assertThat(ownerBookings)
@@ -504,9 +460,9 @@ public class TestBookingServiceImp {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
         when(bookingRepository.findByUserIdAndStartAfter(anyLong(), any(), any()))
-                .thenReturn(new PageImpl<>(List.of(firstBooking)));
+                .thenReturn(new PageImpl<>(List.of(booking)));
         //when
-        List<BookingFullDto> ownerBookings = bookingService.getUserBookingsWithState(userId, State.FUTURE, defaultFrom,
+        List<BookingFullDto> ownerBookings = bookingService.getUserBookingsWithState(user.getId(), State.FUTURE, defaultFrom,
                 defaultSize);
         //then
         assertThat(ownerBookings)
@@ -523,9 +479,9 @@ public class TestBookingServiceImp {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         PageRequest page = PageRequest.of(defaultFrom > 0 ? defaultFrom / defaultSize : 0, defaultSize);
         when(bookingRepository.findByUserIdAndTimeCurrent(anyLong(), any(), any()))
-                .thenReturn(new PageImpl<>(List.of(firstBooking)));
+                .thenReturn(new PageImpl<>(List.of(booking)));
         //when
-        List<BookingFullDto> ownerBookings = bookingService.getUserBookingsWithState(userId, State.CURRENT, defaultFrom,
+        List<BookingFullDto> ownerBookings = bookingService.getUserBookingsWithState(user.getId(), State.CURRENT, defaultFrom,
                 defaultSize);
         //then
         assertThat(ownerBookings)
@@ -539,13 +495,14 @@ public class TestBookingServiceImp {
     @Test
     void updateBooking_success() {
         //given
-        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(firstBooking));
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(owner));
-        when(bookingRepository.save(any(Booking.class))).thenReturn(firstBooking);
+        Long ownerId = 2L;
+        BookingFullDto bookingFullDto = createBookingFullDto();
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(createUser("Peter", "iown@mail.ts")));
+        when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
         //when
         Boolean approved = Boolean.TRUE;
-        firstBooking.setId(1L);
-        BookingFullDto approvedBooking = bookingService.updateBooking(ownerId, firstBooking.getId(), approved);
+        BookingFullDto approvedBooking = bookingService.updateBooking(ownerId, booking.getId(), approved);
         bookingFullDto.setStatus(Status.APPROVED);
         //then
         assertThat(approvedBooking)
@@ -556,40 +513,41 @@ public class TestBookingServiceImp {
     @Test
     void updateBooking_failure_userIsNotOwner() {
         //given
-        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(firstBooking));
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         //when
         Boolean approved = Boolean.TRUE;
-        firstBooking.setId(1L);
+        booking.setId(1L);
         //then
-        assertThrows(UserMissMatchException.class, () -> bookingService.updateBooking(userId, firstBooking.getId(),
+        assertThrows(UserMissMatchException.class, () -> bookingService.updateBooking(user.getId(), booking.getId(),
                 approved));
     }
 
     @Test
     void updateBooking_failure_wrongCurrentStatus() {
         //given
-        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(firstBooking));
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(owner));
+        Long ownerId = 2L;
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(createUser("Peter", "iown@mail.ts")));
         //when
         Boolean approved = Boolean.TRUE;
-        firstBooking.setId(1L);
-        firstBooking.setStatus(Status.APPROVED);
+        booking.setStatus(Status.APPROVED);
         //then
-        assertThrows(UnsupportedStatusException.class, () -> bookingService.updateBooking(ownerId, firstBooking.getId(),
+        assertThrows(UnsupportedStatusException.class, () -> bookingService.updateBooking(ownerId, booking.getId(),
                 approved));
     }
 
     @Test
     void cancelBooking_success() {
         //given
-        firstBooking.setId(1L);
-        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(firstBooking));
-        when(bookingRepository.save(any(Booking.class))).thenReturn(firstBooking);
+        booking.setId(1L);
+        user.setId(1L);
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
         //when
-        bookingService.cancelBooking(userId, firstBooking.getId());
+        bookingService.cancelBooking(user.getId(), booking.getId());
         //then
-        assertThat(firstBooking.getStatus())
+        assertThat(booking.getStatus())
                 .isNotNull()
                 .isEqualTo(Status.CANCELED);
     }
@@ -597,22 +555,24 @@ public class TestBookingServiceImp {
     @Test
     void cancelBooking_failure_wrongUser() {
         //given
-        firstBooking.setId(1L);
-        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(firstBooking));
-        when(bookingRepository.save(any(Booking.class))).thenReturn(firstBooking);
+        Long ownerId = 2L;
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
         //when
-        bookingService.cancelBooking(userId, firstBooking.getId());
+        bookingService.cancelBooking(user.getId(), booking.getId());
         //then
-        assertThrows(EntityNotFoundException.class, () -> bookingService.cancelBooking(ownerId, firstBooking.getId()));
+        assertThrows(EntityNotFoundException.class, () -> bookingService.cancelBooking(ownerId, booking.getId()));
     }
 
     @Test
     void deleteBooking_success() {
+        //given
+        user.setId(1L);
         //when
-        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(firstBooking));
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
         doNothing().when(bookingRepository).delete(any());
         //then
-        bookingService.deleteBooking(itemId);
+        bookingService.deleteBooking(item.getId());
     }
 
     @Test
@@ -622,6 +582,60 @@ public class TestBookingServiceImp {
         //when
         when(bookingRepository.findById(anyLong())).thenThrow(EntityNotFoundException.class);
         //then
-        assertThrows(EntityNotFoundException.class, () -> bookingService.deleteBooking(itemId));
+        assertThrows(EntityNotFoundException.class, () -> bookingService.deleteBooking(wrongId));
+    }
+
+    private UserDto createUserDto() {
+        return UserDto.builder()
+                .id(1L)
+                .name("Ken")
+                .email("eken@mail.ts")
+                .build();
+    }
+
+    private ItemDto createItemDto() {
+        return ItemDto.builder()
+                .id(1L)
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .build();
+    }
+
+    private BookingDto createBookingDto() {
+        return BookingDto.builder()
+                .start(LocalDateTime.of(2025, 1, 1, 1, 1, 1))
+                .end(LocalDateTime.of(2025, 1, 1, 2, 1, 1))
+                .itemId(1L)
+                .bookerId(1L)
+                .build();
+    }
+
+    private BookingFullDto createBookingFullDto() {
+        return BookingFullDto.builder()
+                .id(1L)
+                .start(LocalDateTime.of(2025, 1, 1, 1, 1, 1))
+                .end(LocalDateTime.of(2025, 1, 1, 2, 1, 1))
+                .item(createItemDto())
+                .booker(createUserDto())
+                .status(Status.WAITING)
+                .build();
+    }
+
+    private User createUser(String userName, String userEmail) {
+        return User.builder()
+                .name(userName)
+                .email(userEmail)
+                .build();
+    }
+
+    private Item createItem() {
+        return Item.builder()
+                .id(1L)
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .owner(2L)
+                .build();
     }
 }

@@ -17,7 +17,6 @@ import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.UserService;
-import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
@@ -41,45 +40,24 @@ public class TestItemServiceInt {
     private User owner;
     private Item item;
     private ItemDto itemDto;
-    private UserDto ownerDto;
-    private Long ownerId = 1L;
-    private Long itemId = 1L;
-    private String ownerName = "Peter";
-    private String ownerEmail = "iown@mail.ts";
-    private String itemName = "thing";
-    private String itemDescription = "very thing";
     private int defaultFrom = 0;
     private int defaultSize = 10;
 
     @BeforeEach
     private void init() {
-        item = Item.builder()
-                .id(1L)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .owner(ownerId)
-                .build();
-        owner = User.builder()
-                .id(ownerId)
-                .name(ownerName)
-                .email(ownerEmail)
-                .build();
-        itemDto = ItemDto.builder()
-                .id(itemId)
-                .name(itemName)
-                .description(itemDescription)
-                .available(Boolean.TRUE)
-                .build();
-        ownerDto = UserMapper.toUserDto(owner);
-        userService.addUser(ownerDto);
-        itemService.addItem(ownerId, itemDto);
+        itemDto = createItemDto();
+        item = createItem();
+        item.setId(1L);
+        owner = createUser("Peter", "iown@mail.ts");
+        owner.setId(1L);
+        userService.addUser(UserMapper.toUserDto(owner));
+        itemService.addItem(owner.getId(), itemDto);
     }
 
     @Test
     void addItem_success() {
         //when
-        ItemDto addedItemDto = itemService.addItem(ownerId, itemDto);
+        ItemDto addedItemDto = itemService.addItem(owner.getId(), itemDto);
         Item queryItem = entityManager.createQuery("SELECT i FROM Item i", Item.class)
                 .getSingleResult();
         //then
@@ -94,7 +72,7 @@ public class TestItemServiceInt {
         //given
         itemDto.setAvailable(Boolean.FALSE);
         //when
-        ItemDto updatedItemDto = itemService.updateItem(ownerId, itemDto, itemId);
+        ItemDto updatedItemDto = itemService.updateItem(owner.getId(), itemDto, item.getId());
         Item queryItem = entityManager.createQuery("SELECT i FROM Item i", Item.class)
                 .getSingleResult();
         //then
@@ -109,9 +87,9 @@ public class TestItemServiceInt {
     @Test
     void getItem_success() {
         //when
-        ItemWithBookingsDto returnedItemWithBookingsDto = itemService.getItem(ownerId, itemId);
+        ItemWithBookingsDto returnedItemWithBookingsDto = itemService.getItem(owner.getId(), item.getId());
         Item queryItem = entityManager.createQuery("SELECT i FROM Item i where i.id = : id", Item.class)
-                .setParameter("id", itemId)
+                .setParameter("id", item.getId())
                 .getSingleResult();
         ItemWithBookingsDto queryItemWithBookingsDto = ItemMapper.toItemWithBookingsDto(queryItem);
         queryItemWithBookingsDto.setComments(List.of());
@@ -125,10 +103,10 @@ public class TestItemServiceInt {
     @Test
     void getUserItems_success() {
         //when
-        List<ItemWithBookingsDto> items = itemService.getUserItems(ownerId, defaultFrom, defaultSize);
+        List<ItemWithBookingsDto> items = itemService.getUserItems(owner.getId(), defaultFrom, defaultSize);
         List<Item> queryItems =
                 entityManager.createQuery("select i from Item as i where i.owner = :id order by i.id", Item.class)
-                        .setParameter("id", ownerId)
+                        .setParameter("id", owner.getId())
                         .getResultList();
         List<ItemWithBookingsDto> queryItemWithBookingsDtos = queryItems.stream()
                 .map(x -> ItemMapper.toItemWithBookingsDto(x))
@@ -149,7 +127,7 @@ public class TestItemServiceInt {
         String searchText = "thi";
         //when
         List<ItemDto> items = itemService.searchItem(searchText, defaultFrom, defaultSize);
-        Item searchedItem = entityManager.find(Item.class, itemId);
+        Item searchedItem = entityManager.find(Item.class, item.getId());
         //then
         assertThat(items)
                 .isNotNull()
@@ -162,11 +140,36 @@ public class TestItemServiceInt {
     @Test
     void deleteItem_success() {
         //when
-        itemService.deleteItem(itemId);
+        itemService.deleteItem(item.getId());
         List<Item> items = entityManager.createQuery("SELECT i FROM Item i", Item.class)
                 .getResultList();
         //then
         assertThat(items)
                 .hasSize(0);
+    }
+
+    private User createUser(String userName, String userEmail) {
+        return User.builder()
+                .name(userName)
+                .email(userEmail)
+                .build();
+    }
+
+    private ItemDto createItemDto() {
+        return ItemDto.builder()
+                .id(1L)
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .build();
+    }
+
+    private Item createItem() {
+        return Item.builder()
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .owner(2L)
+                .build();
     }
 }

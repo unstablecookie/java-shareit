@@ -18,45 +18,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @JsonTest
 public class TestBookingDto {
-    private Long userId = 1L;
-    private Long itemId = 1L;
-    private String itemName = "thing";
-    private String userName = "Ken";
-    private String userEmail = "eken@mail.ts";
-    private String itemDescription = "very thing";
     LocalDateTime start = LocalDateTime.of(2025, 1, 1, 1, 1, 1);
     LocalDateTime end = LocalDateTime.of(2025, 1, 1, 2, 1, 1);
-    private ItemDto itemDto = ItemDto.builder()
-            .id(itemId)
-            .name(itemName)
-            .description(itemDescription)
-            .available(Boolean.TRUE)
-            .requestId(1L)
-            .build();
-    private UserDto userDto = UserDto.builder()
-            .id(userId)
-            .name(userName)
-            .email(userEmail)
-            .build();
-    private BookingDto bookingDto = bookingDto = BookingDto.builder()
-            .start(start)
-            .end(end)
-            .itemId(1L)
-            .bookerId(1L)
-            .status(Status.WAITING)
-            .build();
-    private BookingFullDto bookingFullDto = BookingFullDto.builder()
-            .id(1L)
-            .start(start)
-            .end(end)
-            .item(itemDto)
-            .booker(userDto)
-            .status(Status.WAITING)
-            .build();
-    private BookingMinDto bookingMinDto = BookingMinDto.builder()
-            .id(1L)
-            .bookerId(userId)
-            .build();
+
     @Autowired
     private JacksonTester<BookingDto> bookingDtoJacksonTester;
     @Autowired
@@ -66,6 +30,8 @@ public class TestBookingDto {
 
     @Test
     void bookingDtoJacksonTester_success() throws IOException {
+        //given
+        BookingDto bookingDto = createBookingDto();
         //when
         JsonContent<BookingDto> content = bookingDtoJacksonTester.write(bookingDto);
         //then
@@ -88,6 +54,8 @@ public class TestBookingDto {
 
     @Test
     void bookingFullDtoJacksonTester_success() throws IOException {
+        //given
+        BookingFullDto bookingFullDto = createBookingFullDto();
         //when
         JsonContent<BookingFullDto> content = bookingFullDtoJacksonTester.write(bookingFullDto);
         //then
@@ -134,6 +102,8 @@ public class TestBookingDto {
 
     @Test
     void bookingMinDtoJacksonTester_success() throws IOException {
+        //given
+        BookingMinDto bookingMinDto = createBookingMinDto();
         //when
         JsonContent<BookingMinDto> content = bookingMinDtoJacksonTester.write(bookingMinDto);
         //then
@@ -143,5 +113,51 @@ public class TestBookingDto {
         assertThat(content)
                 .extractingJsonPathNumberValue("$.bookerId")
                 .isEqualTo(bookingMinDto.getBookerId().intValue());
+    }
+
+    private ItemDto createItemDto() {
+        return ItemDto.builder()
+                .id(1L)
+                .name("thing")
+                .description("very thing")
+                .available(Boolean.TRUE)
+                .requestId(1L)
+                .build();
+    }
+
+    private UserDto createUserDto() {
+        return UserDto.builder()
+                .id(1L)
+                .name("Ken")
+                .email("eken@mail.ts")
+                .build();
+    }
+
+    private BookingDto createBookingDto() {
+        return BookingDto.builder()
+                .start(start)
+                .end(end)
+                .itemId(1L)
+                .bookerId(1L)
+                .status(Status.WAITING)
+                .build();
+    }
+
+    private BookingFullDto createBookingFullDto() {
+        return BookingFullDto.builder()
+                .id(1L)
+                .start(start)
+                .end(end)
+                .item(createItemDto())
+                .booker(createUserDto())
+                .status(Status.WAITING)
+                .build();
+    }
+
+    private BookingMinDto createBookingMinDto() {
+        return BookingMinDto.builder()
+                .id(1L)
+                .bookerId(1L)
+                .build();
     }
 }

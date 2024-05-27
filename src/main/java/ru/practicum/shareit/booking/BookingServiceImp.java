@@ -42,7 +42,7 @@ public class BookingServiceImp implements BookingService {
         Item item = itemRepository.findById(bookingDto.getItemId()).orElseThrow(
                 () -> new EntityNotFoundException(String.format("item id: %d was not found", bookingDto.getItemId())));
         if (item.getOwner().equals(userId)) {
-            throw new EntityNotFoundException("user is the owner");
+            throw new UserMissMatchException("user is the owner");
         }
         if (!item.getAvailable().booleanValue()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "item is unavailable");
