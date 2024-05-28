@@ -1,7 +1,8 @@
 package ru.practicum.shareit.booking.model;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface EntityBookings {
-    List<Booking> getEntityBookings(Long id);
+    Page<Booking> getEntityBookingsOrderByStartDesc(Long id, Pageable page);
 }

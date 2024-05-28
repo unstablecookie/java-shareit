@@ -1,6 +1,8 @@
 package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -40,7 +42,7 @@ public class BookingServiceImp implements BookingService {
         Item item = itemRepository.findById(bookingDto.getItemId()).orElseThrow(
                 () -> new EntityNotFoundException(String.format("item id: %d was not found", bookingDto.getItemId())));
         if (item.getOwner().equals(userId)) {
-            throw new EntityNotFoundException(String.format("item id: %d was not found", bookingDto.getItemId()));
+            throw new UserMissMatchException("user is the owner");
         }
         if (!item.getAvailable().booleanValue()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "item is unavailable");
@@ -49,7 +51,6 @@ public class BookingServiceImp implements BookingService {
         if (checkTimeOverlap(booking)) {
             throw new TimeOverlapException("wrong bookings time period");
         }
-        booking.setStatus(Status.WAITING);
         BookingFullDto addedBooking =
                 Optional.of(BookingMapper.toBookingDtoFull(bookingRepository.save(booking)))
                         .orElseThrow(() -> new EntityNotFoundException("booking was not added"));
@@ -67,56 +68,59 @@ public class BookingServiceImp implements BookingService {
     }
 
     @Override
-    public List<BookingFullDto> getOwnerBookings(Long userId) {
+    public List<BookingFullDto> getOwnerBookings(Long userId, int from, int size) {
         userRepository.findById(userId).orElseThrow(
                 () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
-        return bookingRepository.findAllOwnerBookings(userId).stream()
+        PageRequest page = PageRequest.of(from > 0 ? from / size : 0, size);
+        return bookingRepository.findAllOwnerBookingsOrderByStartDesc(userId, page).stream()
                 .map(x -> BookingMapper.toBookingDtoFull(x))
                 .sorted((a, b) -> b.getStart().compareTo(a.getStart()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<BookingFullDto> getOwnerBookingsWithState(Long userId, State queryStatus) {
+    public List<BookingFullDto> getOwnerBookingsWithState(Long userId, State queryStatus, int from, int size) {
         userRepository.findById(userId).orElseThrow(
                 () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
+        PageRequest page = PageRequest.of(from > 0 ? from / size : 0, size);
         switch (queryStatus) {
             case WAITING: return getBookingsWithConditionAndState(userId, Status.WAITING,
-                    bookingRepository::findAllOwnerBookingsAndStatus);
+                    bookingRepository::findAllOwnerBookingsAndStatus, page);
             case REJECTED: return getBookingsWithConditionAndState(userId, Status.REJECTED,
-                    bookingRepository::findAllOwnerBookingsAndStatus);
-            case ALL: return getBookingsWithCondition(userId, bookingRepository::findAllOwnerBookings);
-            case PAST: return getBookingsWithTimeCon(userId, bookingRepository::findByOwnerIdAndEndBefore);
-            case FUTURE: return getBookingsWithTimeCon(userId, bookingRepository::findByOwnerIdAndStartAfter);
-            case CURRENT: return getBookingsWithTimeCon(userId, bookingRepository::findByOwnerIdAndTimeCurrent);
-            default: throw new BookingNotFoundException();
+                    bookingRepository::findAllOwnerBookingsAndStatus, page);
+            case ALL: return getBookingsWithCondition(userId, bookingRepository::findAllOwnerBookings, page);
+            case PAST: return getBookingsWithTimeCon(userId, bookingRepository::findByOwnerIdAndEndBefore, page);
+            case FUTURE: return getBookingsWithTimeCon(userId, bookingRepository::findByOwnerIdAndStartAfter, page);
+            case CURRENT: return getBookingsWithTimeCon(userId, bookingRepository::findByOwnerIdAndTimeCurrent, page);
+            default: return getBookingsWithCondition(userId, bookingRepository::findAllOwnerBookings, page);
         }
     }
 
     @Override
-    public List<BookingFullDto> getUserBookingsWithState(Long userId, State queryStatus) {
+    public List<BookingFullDto> getUserBookingsWithState(Long userId, State queryStatus, int from, int size) {
         userRepository.findById(userId).orElseThrow(
                 () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
         List<Booking> bookings;
+        PageRequest page = PageRequest.of(from > 0 ? from / size : 0, size);
         switch (queryStatus) {
             case WAITING: return getBookingsWithConditionAndState(userId, Status.WAITING,
-                    bookingRepository::findByUserIdAndStatus);
+                    bookingRepository::findByUserIdAndStatus, page);
             case REJECTED: return getBookingsWithConditionAndState(userId, Status.REJECTED,
-                    bookingRepository::findByUserIdAndStatus);
-            case ALL: return getBookingsWithCondition(userId, bookingRepository::findByUserId);
-            case PAST: return getBookingsWithTimeCon(userId, bookingRepository::findByUserIdAndEndBefore);
-            case FUTURE: return getBookingsWithTimeCon(userId, bookingRepository::findByUserIdAndStartAfter);
-            case CURRENT: return getBookingsWithTimeCon(userId, bookingRepository::findByUserIdAndTimeCurrent);
-            default: throw new BookingNotFoundException();
+                    bookingRepository::findByUserIdAndStatus, page);
+            case ALL: return getBookingsWithCondition(userId, bookingRepository::findByUserId, page);
+            case PAST: return getBookingsWithTimeCon(userId, bookingRepository::findByUserIdAndEndBefore, page);
+            case FUTURE: return getBookingsWithTimeCon(userId, bookingRepository::findByUserIdAndStartAfter, page);
+            case CURRENT: return getBookingsWithTimeCon(userId, bookingRepository::findByUserIdAndTimeCurrent, page);
+            default: return getBookingsWithCondition(userId, bookingRepository::findByUserId, page);
         }
     }
 
     @Override
-    public List<BookingFullDto> getUserBookings(Long userId) {
+    public List<BookingFullDto> getUserBookings(Long userId, int from, int size) {
         userRepository.findById(userId).orElseThrow(
                 () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
-        List<Booking> bookings = bookingRepository.findByUserId(userId);
-        return bookings.stream()
+        PageRequest page = PageRequest.of(from > 0 ? from / size : 0, size);
+        return bookingRepository.findByUserIdOrderByStartDesc(userId, page).stream()
                 .map(x -> BookingMapper.toBookingDtoFull(x))
                 .sorted((a, b) -> b.getStart().compareTo(a.getStart()))
                 .collect(Collectors.toList());
@@ -134,7 +138,7 @@ public class BookingServiceImp implements BookingService {
     @Override
     public BookingFullDto updateBooking(Long userId, Long bookingId, Boolean approved) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(
-                () -> new EntityNotFoundException(String.format("booking id: %d was not found", userId)));
+                () -> new EntityNotFoundException(String.format("booking id: %d was not found", bookingId)));
         userRepository.findById(userId).orElseThrow(
                 () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));
         if (!booking.getItem().getOwner().equals(userId)) {
@@ -156,7 +160,7 @@ public class BookingServiceImp implements BookingService {
     public void cancelBooking(Long userId, Long bookingId) {
         Optional<Booking> booking = bookingRepository.findById(bookingId);
         if (booking.isEmpty() || (!booking.get().getUser().getId().equals(userId))) {
-            throw new EntityNotFoundException(String.format("user id %d is not owner or booking does not exist",
+            throw new EntityNotFoundException(String.format("user id %d is not an owner or booking id: %d does not exist",
                     userId, bookingId)
             );
         }
@@ -193,23 +197,23 @@ public class BookingServiceImp implements BookingService {
         return false;
     }
 
-    private List<BookingFullDto> getBookingsWithCondition(Long userId, EntityBookings entityMethod) {
-        return entityMethod.getEntityBookings(userId).stream()
+    private List<BookingFullDto> getBookingsWithCondition(Long userId, EntityBookings entityMethod, Pageable page) {
+        return entityMethod.getEntityBookingsOrderByStartDesc(userId, page).stream()
                 .map(x -> BookingMapper.toBookingDtoFull(x))
                 .sorted((a, b) -> b.getStart().compareTo(a.getStart()))
                 .collect(Collectors.toList());
     }
 
-    private List<BookingFullDto> getBookingsWithTimeCon(Long userId, EntityBookingsWithOneTimeCond entityMethod) {
-        return entityMethod.getEntityBookingsWithTimeCon(userId, LocalDateTime.now()).stream()
+    private List<BookingFullDto> getBookingsWithTimeCon(Long userId, EntityBookingsWithOneTimeCond entityMethod, Pageable page) {
+        return entityMethod.getEntityBookingsWithTimeCon(userId, LocalDateTime.now(), page).stream()
                 .map(x -> BookingMapper.toBookingDtoFull(x))
                 .sorted((a, b) -> b.getStart().compareTo(a.getStart()))
                 .collect(Collectors.toList());
     }
 
     private List<BookingFullDto> getBookingsWithConditionAndState(Long userId, Status status,
-                                                                  EntityBookingsWithState entityMethod) {
-        return entityMethod.getEntityBookingsWithState(userId, status).stream()
+                                                                  EntityBookingsWithState entityMethod, Pageable page) {
+        return entityMethod.getEntityBookingsWithState(userId, status, page).stream()
                 .map(x -> BookingMapper.toBookingDtoFull(x))
                 .sorted((a, b) -> b.getStart().compareTo(a.getStart()))
                 .collect(Collectors.toList());

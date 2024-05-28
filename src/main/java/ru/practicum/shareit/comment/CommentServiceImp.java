@@ -2,6 +2,10 @@ package ru.practicum.shareit.comment;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.Status;
@@ -9,16 +13,12 @@ import ru.practicum.shareit.comment.dto.CommentDto;
 import ru.practicum.shareit.comment.dto.CommentDtoFull;
 import ru.practicum.shareit.comment.dto.CommentMapper;
 import ru.practicum.shareit.comment.model.Comment;
-import ru.practicum.shareit.error.BookingNotFoundException;
 import ru.practicum.shareit.error.EntityNotFoundException;
+import ru.practicum.shareit.error.UnsupportedStatusException;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +35,7 @@ public class CommentServiceImp implements CommentService {
                 .filter(x -> x.getStart().isBefore(LocalDateTime.now()))
                 .collect(Collectors.toList());
         if (bookings.size() < 1) {
-            throw new BookingNotFoundException();
+            throw new UnsupportedStatusException();
         }
         User user = userRepository.findById(userId).orElseThrow(
                 () -> new EntityNotFoundException(String.format("user id: %d was not found", userId)));

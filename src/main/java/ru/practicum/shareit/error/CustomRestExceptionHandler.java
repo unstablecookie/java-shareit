@@ -15,12 +15,6 @@ public class CustomRestExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(new ErrorResponse(status, "Unknown state: UNSUPPORTED_STATUS"), status);
     }
 
-    @ExceptionHandler(BookingNotFoundException.class)
-    protected ResponseEntity<ErrorResponse> handleBookingNotFoundException(BookingNotFoundException ex) {
-        HttpStatus status = HttpStatus.BAD_REQUEST;
-        return new ResponseEntity<>(new ErrorResponse(status, "item bookings not found"), status);
-    }
-
     @ExceptionHandler(EntityNotFoundException.class)
     protected ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex) {
         HttpStatus status = HttpStatus.NOT_FOUND;
