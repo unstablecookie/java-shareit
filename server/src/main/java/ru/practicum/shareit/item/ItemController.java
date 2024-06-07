@@ -8,8 +8,6 @@ import ru.practicum.shareit.comment.dto.CommentDto;
 import ru.practicum.shareit.comment.dto.CommentDtoFull;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
-
-import javax.validation.Valid;
 import java.util.List;
 
 @Slf4j
@@ -22,13 +20,13 @@ public class ItemController {
 
     @PostMapping
     public ItemDto addItem(@RequestHeader("X-Sharer-User-Id") Long userId,
-                           @Valid @RequestBody ItemDto itemDto) {
+                           @RequestBody ItemDto itemDto) {
         return itemService.addItem(userId, itemDto);
     }
 
     @PostMapping("/{itemId}/comment")
     public CommentDtoFull addItemComment(@RequestHeader("X-Sharer-User-Id") Long userId,
-                                         @Valid @RequestBody CommentDto commentDto,
+                                         @RequestBody CommentDto commentDto,
                                          @PathVariable Long itemId) {
         CommentDtoFull addedComment = commentService.addItemComment(userId, commentDto, itemId);
         return addedComment;
@@ -49,15 +47,15 @@ public class ItemController {
 
     @GetMapping
     public List<ItemWithBookingsDto> getUserItems(@RequestHeader("X-Sharer-User-Id") Long userId,
-                                                  @RequestParam(required = false, defaultValue = "0") int from,
-                                                  @RequestParam(required = false, defaultValue = "10") int size) {
+                                                  @RequestParam int from,
+                                                  @RequestParam int size) {
         return itemService.getUserItems(userId, from, size);
     }
 
     @GetMapping("/search")
     public List<ItemDto> searchForAnItem(@RequestParam String text,
-                                         @RequestParam(required = false, defaultValue = "0") int from,
-                                         @RequestParam(required = false, defaultValue = "10") int size) {
+                                         @RequestParam int from,
+                                         @RequestParam int size) {
         return itemService.searchItem(text, from, size);
     }
 

@@ -10,6 +10,7 @@ import ru.practicum.shareit.comment.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 
 @Controller
 @RequestMapping(path = "/items")
@@ -51,8 +52,8 @@ public class ItemController {
 
     @GetMapping
     public ResponseEntity<Object> getUserItems(@RequestHeader("X-Sharer-User-Id") Long userId,
-                                               @RequestParam(required = false, defaultValue = "0") int from,
-                                               @RequestParam(required = false, defaultValue = "10") int size) {
+                                               @RequestParam(required = false, defaultValue = "0") @Min(0) int from,
+                                               @RequestParam(required = false, defaultValue = "10") @Min(1) int size) {
         log.info("get user items");
         return itemClient.getUserItems(userId, from, size);
     }
@@ -60,8 +61,8 @@ public class ItemController {
     @GetMapping("/search")
     public ResponseEntity<Object> searchForAnItem(@RequestHeader("X-Sharer-User-Id") Long userId,
                                                   @RequestParam String text,
-                                                  @RequestParam(required = false, defaultValue = "0") int from,
-                                                  @RequestParam(required = false, defaultValue = "10") int size) {
+                                                  @RequestParam(required = false, defaultValue = "0") @Min(0) int from,
+                                                  @RequestParam(required = false, defaultValue = "10") @Min(1) int size) {
         log.info(String.format("search for an item: ", text));
         return  itemClient.searchForAnItem(text, userId, from, size);
     }

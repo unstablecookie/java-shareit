@@ -169,6 +169,7 @@ public class TestItemRequestServiceInt {
 
     private ItemRequestDto createItemRequestDto() {
         return ItemRequestDto.builder()
+                .name("thing!")
                 .description("i want some thing")
                 .build();
     }
