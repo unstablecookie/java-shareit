@@ -23,7 +23,7 @@ public class ItemRequestMapper {
 
     public static ItemRequest toItemRequest(ItemRequestDto itemRequestDto, User user) {
         ItemRequest itemRequest = ItemRequest.builder()
-                .name(itemRequestDto.getName())
+                .name((itemRequestDto.getName() != null) ? itemRequestDto.getName() : null)
                 .description((itemRequestDto.getDescription() != null) ? itemRequestDto.getDescription() : null)
                 .available(itemRequestDto.getAvailable() != null ? itemRequestDto.getAvailable() : Boolean.FALSE)
                 .requestor(user)
