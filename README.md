@@ -12,4 +12,4 @@ Both are Spring Boot and Maven projects.
 The main service supports both H2(for testing) and Postgresql databases.
 
 
-![](/shareitER.jpg)
+![](shareitER.JPG)
