@@ -10,3 +10,6 @@ Provides basic
 It is based on two separate components, - the **main service** and the **gateway**.
 Both are Spring Boot and Maven projects.
 The main service supports both H2(for testing) and Postgresql databases.
+
+
+![](/shareitER.jpg)
